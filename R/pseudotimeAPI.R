@@ -1,3 +1,74 @@
+#' Compute log_likelihood cost function of one gene based on given parameters
+#' @description
+#' The log_likelihood cost of fitting a gene's expression counts and pseudotime into a
+#' self-defined marginal distribution and parameters
+#' @param b A numeric vector of the parameters of the predefined distribution,
+#' length equals 6 or 7 depending on distribution(take 6 for Poisson or ZIP, 7 for NB and ZINB)
+#' @param y A integer vector of the input expression counts data of a given gene,
+#' length equals the numbers of cells
+#' @param t A numeric vector of the input normalized pseodotime data of a given gene,
+#' length equals the numbers of cells
+#' @param marginal A string of the distribution name. One of \code{Poisson}, \code{ZIP}, \code{NB} and \code{ZINB}.
+#'
+#' @return The log_likelihood cost of the gene
+#'
+#' @importFrom stats dnbinom dpois
+#' @export pso_obj_fct
+#'
+#' @examples
+#' b<-c(0.1,0.2,0.3,0.4,0.5,0.6)
+#' y<-floor(runif(100, min = 0, max = 20))
+#' t<-runif(100, min = 0, max = 1)
+#' marginal<-"ZIP"
+#' pso_obj_fct(b,y=y, t=t, marginal=marginal)
+#'
+#' @author Shiyu Ma
+#'
+pso_obj_fct<-function(b, y, t, marginal){
+  d<- dim(b)
+
+  cost <- 0
+  if(marginal == "ZINB"){
+    mu<-b[1]
+    k1<-b[2]
+    k2<-b[3]
+    t0<-b[4]
+    phi<-b[5]
+    alpha<-b[6]
+    beta<-b[7]
+    cost <- single_gene_log_likelihood_ZINB(y, t, mu, k1, k2, t0, phi, alpha, beta)
+  }
+  else if(marginal == "NB"){
+    mu<-b[1]
+    k1<-b[2]
+    k2<-b[3]
+    t0<-b[4]
+    phi<-b[5]
+    alpha<-b[6]
+    beta<-b[7]
+    cost <- single_gene_log_likelihood_NB(y, t, mu, k1, k2, t0, phi)
+  }
+  else if(marginal == "ZIP"){
+    mu<-b[1]
+    k1<-b[2]
+    k2<-b[3]
+    t0<-b[4]
+    alpha<-b[5]
+    beta<-b[6]
+    cost <- single_gene_log_likelihood_ZIP(y, t, mu, k1, k2, t0, alpha, beta)
+  }
+  else{
+    mu<-b[1]
+    k1<-b[2]
+    k2<-b[3]
+    t0<-b[4]
+    alpha<-b[5]
+    beta<-b[6]
+    cost <- single_gene_log_likelihood_Poisson(y, t, mu, k1, k2, t0)
+  }
+  cost
+}
+
 link<-function(t, mu, k1, k2, t0){
   part1<-mu * exp(- abs(k1) * (t - t0) ** 2) * (sign(k1) + (k1 == 0))
   part2<-mu * exp(- abs(k2) * (t - t0) ** 2) * (sign(k2) + (k2 == 0))
@@ -53,58 +124,24 @@ single_gene_log_likelihood_ZINB<-function(y, t, mu, k1, k2, t0, phi, alpha, beta
   sum(- log(cache * (1 - p) + p * (y == 0)))
 }
 
-pso_obj_fct<-function(b, ...){
-  d<- dim(b)
 
-  par<-list(...)
-  if(length(par)!=0){
-    y<-par[[1]]
-    t<-par[[2]]
-    marginal<-par[[3]]
-  }
-
-  cost <- 0
-  if(marginal == "ZINB"){
-    mu<-b[1]
-    k1<-b[2]
-    k2<-b[3]
-    t0<-b[4]
-    phi<-b[5]
-    alpha<-b[6]
-    beta<-b[7]
-    cost <- single_gene_log_likelihood_ZINB(y, t, mu, k1, k2, t0, phi, alpha, beta)
-  }
-  else if(marginal == "NB"){
-    mu<-b[1]
-    k1<-b[2]
-    k2<-b[3]
-    t0<-b[4]
-    phi<-b[5]
-    alpha<-b[6]
-    beta<-b[7]
-    cost <- single_gene_log_likelihood_NB(y, t, mu, k1, k2, t0, phi)
-  }
-  else if(marginal == "ZIP"){
-    mu<-b[1]
-    k1<-b[2]
-    k2<-b[3]
-    t0<-b[4]
-    alpha<-b[5]
-    beta<-b[6]
-    cost <- single_gene_log_likelihood_ZIP(y, t, mu, k1, k2, t0, alpha, beta)
-  }
-  else{
-    mu<-b[1]
-    k1<-b[2]
-    k2<-b[3]
-    t0<-b[4]
-    alpha<-b[5]
-    beta<-b[6]
-    cost <- single_gene_log_likelihood_Poisson(y, t, mu, k1, k2, t0)
-  }
-  cost
-}
-
+#' Compute Fisher information matrix of interested parameters
+#'
+#' @param t A numeric vector of the input normalized pseodotime data of a given gene,
+#' length equals the numbers of cells
+#' @param para A numeric vector of the Estimated parameters of the predefined distribution,
+#' length equals 6 or 7 depending on distribution(take 6 for Poisson or ZIP, 7 for NB and ZINB)
+#' @param marginal A string of the distribution name. One of \code{Poisson}, \code{ZIP}, \code{NB} and \code{ZINB}.
+#'
+#' @return A 4x4 Fisher information matrix.
+#' @export Fisher_info
+#'
+#' @examples
+#' para<-c(0.1,0.2,0.3,0.4,0.5,0.6)
+#' t<-runif(100, min = 0, max = 1)
+#' marginal<-"ZIP"
+#' Fisher_info(t=t, para=para,marginal=marginal)
+#'
 Fisher_info <- function(t, para, marginal){
   if (marginal == "ZIP" | marginal == "Poisson"){
     mu_fit <- para[1]

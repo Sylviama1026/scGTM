@@ -1,10 +1,9 @@
 Package: scGTM
-Title: What the Package Does (One Line, Title Case)
+Title: Single-cell Gene Expression Generalized Trend Model
 Version: 0.0.0.9000
-Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
+Authors@R: c(person("Shiyu", "Ma", email = "sylviama1026@g.ucla.edu", role = c("aut", "cre")),
+             person("Lehan", "Zou", email = "lehanz77@g.ucla.edu", role = c("aut")))
+Description: This is a R package for modeling the statistical relationship between pseudotime and gene expression data. 
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
