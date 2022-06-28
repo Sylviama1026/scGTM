@@ -1,16 +1,310 @@
-#' Using PSO algorithm to estimate parameters within the fitting distribution
+#' Estimate Parameters in Single-cell Gene Expression Generalized Trend Model
+#' @description
+#' The model fits a gene's expression counts and its normalized pseudotime into one of the four marginal distributions.
+#' This function estimates corresponding parameters and confidence intervals in the corresponding marginal distributions.
 #'
-#' @param y
-#' @param t
-#' @param marginal
-#' @param iter
+#' @param gene_index A single integer vector, indicates which gene to estimate in the model,
+#' default=100
+#' @param t A numeric vector of the input normalized pseudotime data of a given gene,
+#' length equals the numbers of cells
+#' @param y1 A vector of integers, representing the input expression counts of a given gene,
+#' length equals the numbers of cells
+#' @param gene_name A single string vector, indicates the gene name used in the model
+#' @param marginal A string of the distribution name. One of \code{Poisson}, \code{ZIP}, \code{NB} and \code{ZINB}.
+#' default=\code{ZIP}
+#' @param iter_num A single integer vector, indicates max number of iteration used in the PSO algorithm
+#' that estimates model parameters
+#' @param seed A numeric variable of the random seed, affecting parametric fitting of the marginal distribution.
+#' default=123
 #'
-#' @return
-#' @importFrom stats optim runif
-#' @export estimation
+#' @return The log_likelihood cost, estimated parameters, and their confidence intervals of a gene
+#'
+#' @importFrom stats dnbinom dpois optim runif cor
+#' @export scGTM
 #'
 #' @examples
-estimation<-function(y, t, marginal, iter=50){
+#' y1<-floor(runif(100, min = 0, max = 20))
+#' t<-runif(100, min = 0, max = 1)
+#' marginal<-"ZIP"
+#' scGTM(gene_index=1, t=t, y1=y1, marginal=marginal)
+#'
+#' @author Shiyu Ma, Lehan Zou
+#'
+scGTM<-function(gene_index = 100, t=NULL, y1=NULL, gene_name=NULL, marginal="ZIP", iter_num=50, seed=123){
+  #This function automatically determines Hill- or Valley- trend
+  ## Flag calculation
+  flag = (cor(t[t<0.5], y1[t<0.5]) < 0) && (cor(t[t>0.5], y1[t>0.5]) > 0) #slope of 1st half and 2nd half
+  cat("The need of transformation: " , flag)  #flag=False=hill
+
+  ## ESTIMATION
+  cat("\nWe are estimating gene", gene_index,"with marginal",marginal,".\n")
+
+  #transformation if valley
+  if(flag){
+    raw <- y1
+    y1 <- log(y1+1)
+    y1 <- -y1+max(y1) #enforce b=0, align valley with hill estimation
+    y1 <- floor(exp(y1)-1)
+  }
+
+  est<-estimation(y1, t, marginal, seed, iter_num)
+
+  gcost <- est[[1]]
+  gbest <- est[[2]]
+
+  result<-NULL
+  result['negative_log_likelihood'] <- gcost
+
+  if (gcost > 1e2){
+    paste("Best negative log-likelihood: ", round(gcost, 2))
+  }else{
+    paste("Algorithm fails to find reasonable estimation.")
+  }
+
+  if (marginal == "ZIP"){
+    result['mu'] <- gbest[1]; result['k1'] <- gbest[2]
+    result['k2'] <- gbest[3]; result['t0'] <- gbest[4]; result['phi'] <- NA
+    result['alpha'] <- gbest[5]; result['beta'] <- gbest[6]
+
+    cat("Best parameter estimation:\n mu , k1 , k2 , t0 , p:\n",round(gbest, 2))
+  }else if(marginal == "ZINB"){
+    gbest[5] <- ifelse(gbest[6]>1,gbest[6], 1) #phi=alpha????
+    result['mu'] <- gbest[1]; result['k1'] <- gbest[2];result['k2'] <- gbest[3]
+    result['t0'] <- gbest[4]; result['phi'] <- gbest[5]
+    result['alpha'] <- gbest[6]; result['beta'] <- gbest[7]
+
+    cat("Best parameter estimation:\n mu , k1 , k2 , t0 , phi, p:\n",round(gbest, 2))
+  }else if(marginal == "Poisson"){
+    result['mu'] <- gbest[1]; result['k1'] <- gbest[2];result['k2'] <- gbest[3]
+    result['t0'] <- gbest[4]; result['phi'] <- NA; result['p'] = NA
+
+    cat("Best parameter estimation:\n mu , k1 , k2 , t0:\n",round(gbest[-length(gbest)], 2))
+  }else{
+    gbest[6] <- ifelse(gbest[6]>1,gbest[6], 1)
+    result['mu'] <- gbest[1]; result['k1'] <- gbest[2];result['k2'] <- gbest[3]
+    result['t0'] <- gbest[4]; result['phi'] <- gbest[5]; result['p'] = NA
+
+    cat("Best parameter estimation:\n mu , k1 , k2 , t0, phi:\n",round(gbest[-length(gbest)], 2))
+  }
+
+  ## PLOTTING
+
+  ## FISHER INFORMATION
+  fisher<-inference(t, gbest, marginal)[[1]] #4x4 matrix
+  var<-inference(t, gbest, marginal)[[2]] #4x4 matrix
+  t0_lower<-inference(t, gbest, marginal)[[3]]
+  t0_upper<-inference(t, gbest, marginal)[[4]]
+  result['t0_lower'] <- t0_lower
+  result['t0_upper'] <- t0_upper
+
+  cat("\nThe 95% confidence interval of the activation time t0:\n" ,
+      "t0 : (" , t0_lower, ", " , t0_upper , ")\n")
+  if(length(dim(var))>1){
+    result['t0_std']<-sqrt(var[1,1])
+    k1_lower <- round(gbest[2] - 1.96 * sqrt(var[2, 2]), 3)
+    k1_upper <- round(gbest[2] + 1.96 * sqrt(var[2, 2]), 3)
+    k2_lower <- round(gbest[3] - 1.96 * sqrt(var[3, 3]), 3)
+    k2_upper <- round(gbest[3] + 1.96 * sqrt(var[3, 3]), 3)
+    mu_lower <- round(gbest[1] - 1.96 * sqrt(var[4, 4]), 3)
+    mu_upper <- round(gbest[1] + 1.96 * sqrt(var[4, 4]), 3)
+
+    cat("\nThe 95% CIs for activation strength k1 and k2:\n" ,
+        "k1 : (" , k1_lower , ", " , k1_upper , ")\n",
+        "k2 : (" , k2_lower , ", " , k2_upper , ")\n")
+
+    result['k1_lower'] <- k1_lower; result['k1_upper'] <- k1_upper; result['k1_std'] <- sqrt(var[2, 2])
+    result['k2_lower'] <- k2_lower; result['k2_upper'] <- k2_upper; result['k2_std'] <- sqrt(var[3, 3])
+    result['mu_lower'] <- mu_lower; result['mu_upper'] <- mu_upper; result['mu_std'] <- sqrt(var[4, 4])
+    result['Fisher'] = 'Non-singular'
+  }else{
+    var <- fisher
+    var[1, 1] <- 1 / (var[1, 1] + 1e-100)
+    var[2, 2] <- 1 / (var[2, 2] + 1e-100)
+    var[3, 3] <- 1 / (var[3, 3] + 1e-100)
+    var[4, 4] <- 1 / (var[4, 4] + 1e-100)
+
+    result['t0_std']<-sqrt(var[1,1])
+    k1_lower <- round(gbest[2] - 1.96 * sqrt(var[2, 2]), 3)
+    k1_upper <- round(gbest[2] + 1.96 * sqrt(var[2, 2]), 3)
+    k2_lower <- round(gbest[3] - 1.96 * sqrt(var[3, 3]), 3)
+    k2_upper <- round(gbest[3] + 1.96 * sqrt(var[3, 3]), 3)
+    mu_lower <- round(gbest[1] - 1.96 * sqrt(var[4, 4]), 3)
+    mu_upper <- round(gbest[1] + 1.96 * sqrt(var[4, 4]), 3)
+
+    cat("\nThe 95% CIs for activation strength k1 and k2:\n" ,
+        "k1 : (" , k1_lower , ", " , k1_upper , ")\n",
+        "k2 : (" , k2_lower , ", " , k2_upper , ")\n")
+
+    result['k1_lower'] <- k1_lower; result['k1_upper'] <- k1_upper; result['k1_std'] <- sqrt(var[2, 2])
+    result['k2_lower'] <- k2_lower; result['k2_upper'] <- k2_upper; result['k2_std'] <- sqrt(var[3, 3])
+    result['mu_lower'] <- mu_lower; result['mu_upper'] <- mu_upper; result['mu_std'] <- sqrt(var[4, 4])
+    result['Fisher'] = 'Singular'
+  }
+  result['Transform'] <- as.integer(flag)
+
+  result
+}
+
+
+# I. Objection_function
+##Compute log_likelihood cost function of one gene based on given parameters
+pso_obj_fct<-function(b, y, t, marginal){
+  d<- dim(b)
+
+  cost <- 0
+  if(marginal == "ZINB"){
+    mu<-b[1]
+    k1<-b[2]
+    k2<-b[3]
+    t0<-b[4]
+    phi<-b[5]
+    alpha<-b[6]
+    beta<-b[7]
+    cost <- single_gene_log_likelihood_ZINB(y, t, mu, k1, k2, t0, phi, alpha, beta)
+  }
+  else if(marginal == "NB"){
+    mu<-b[1]
+    k1<-b[2]
+    k2<-b[3]
+    t0<-b[4]
+    phi<-b[5]
+    alpha<-b[6]
+    beta<-b[7]
+    cost <- single_gene_log_likelihood_NB(y, t, mu, k1, k2, t0, phi)
+  }
+  else if(marginal == "ZIP"){
+    mu<-b[1]
+    k1<-b[2]
+    k2<-b[3]
+    t0<-b[4]
+    alpha<-b[5]
+    beta<-b[6]
+    cost <- single_gene_log_likelihood_ZIP(y, t, mu, k1, k2, t0, alpha, beta)
+  }
+  else{
+    mu<-b[1]
+    k1<-b[2]
+    k2<-b[3]
+    t0<-b[4]
+    alpha<-b[5]
+    beta<-b[6]
+    cost <- single_gene_log_likelihood_Poisson(y, t, mu, k1, k2, t0)
+  }
+  cost
+}
+
+link<-function(t, mu, k1, k2, t0){
+  part1<-mu * exp(- abs(k1) * (t - t0) ** 2) * (sign(k1) + (k1 == 0))
+  part2<-mu * exp(- abs(k2) * (t - t0) ** 2) * (sign(k2) + (k2 == 0))
+
+  part1 * (t <= t0) + part2 * (t > t0)
+}
+
+## Poisson
+single_gene_log_likelihood_Poisson<-function(y, t, mu, k1, k2, t0){
+  bell<-link(t, mu, k1, k2, t0)
+  mut<-ifelse(exp(bell)>0.1, exp(bell), 0.1)
+
+  sum(-log(dpois(y, lambda=mut) + 1e-300))
+}
+
+## Zero-inflated Poisson
+single_gene_log_likelihood_ZIP<-function(y, t, mu, k1, k2, t0, alpha, beta){
+  bell<-link(t, mu, k1, k2, t0)
+  mut<-ifelse(exp(bell)>0.1, exp(bell), 0.1)
+  cache<-dpois(y, lambda=mut) + 1e-300
+
+  ## Zero-inflation
+  p <- 1 / (1 + exp(alpha * log(mut) + beta))
+
+  sum(- log(cache * (1 - p) + p * (y == 0)))
+}
+
+## Negative Binomial
+single_gene_log_likelihood_NB<-function(y, t, mu, k1, k2, t0, phi){
+  bell<-link(t, mu, k1, k2, t0)
+  mut<-ifelse(exp(bell)>0.1, exp(bell), 0.1)
+
+  phi <- ifelse(phi>1, phi, 1)
+  p0 <- mut / (mut + phi)
+  cache <- dnbinom(y, phi, 1 - p0) + 1e-300
+
+  sum(-log(cache))
+}
+
+
+## Zero-inflated Negative Binomial
+single_gene_log_likelihood_ZINB<-function(y, t, mu, k1, k2, t0, phi, alpha, beta){
+  bell<-link(t, mu, k1, k2, t0)
+  mut<-ifelse(exp(bell)>0.1, exp(bell), 0.1)
+
+  phi <- ifelse(phi>1, phi, 1)
+  p0 <- phi / (mut + phi)
+  cache <- dnbinom(y, phi, p0) + 1e-300
+
+  ## Zero-inflation
+  p <- 1 / (1 + exp(alpha * log(mut) + beta))
+
+  sum(- log(cache * (1 - p) + p * (y == 0)))
+}
+
+
+
+
+# II. Fisher information matrix
+##Compute Fisher information matrix of interested parameters
+Fisher_info <- function(t, para, marginal){
+  if (marginal == "ZIP" | marginal == "Poisson"){
+    mu_fit <- para[1]
+    k1_fit <- para[2]
+    k2_fit <- para[3]
+    t0_fit <- para[4]
+    alpha_fit <- para[5]
+    beta_fit <- para[6]
+  }else{
+    mu_fit <- para[1]
+    k1_fit <- para[2]
+    k2_fit <- para[3]
+    t0_fit <- para[4]
+    phi_fit <- para[5]
+    alpha_fit <- para[6]
+    beta_fit <- para[7]
+  }
+
+  log_mut_fit <- link(t, mu_fit, k1_fit, k2_fit, t0_fit)
+
+  mut <- ifelse(exp(log_mut_fit)>0.1, exp(log_mut_fit), 0.1)
+
+  t0_deri <- 2 * (k1_fit * (t <= t0_fit) + k2_fit * (t > t0_fit)) * (t - t0_fit) * log_mut_fit  # * (1 + 1/mut)
+  k1_deri <- (t - t0_fit) ** 2 * log_mut_fit * (t <= t0_fit)  # * (1 + 1/mut)
+  k2_deri <- (t - t0_fit) ** 2 * log_mut_fit * (t > t0_fit)  # * (1 + 1/mut)
+  mu_deri <- log_mut_fit / mu_fit  # * (1 + 1/mut)
+
+  if (marginal == "Poisson"){
+    t0_deri <- t0_deri*(1 + 1 / mut)
+    k1_deri <- k1_deri*(1 + 1 / mut)
+    k2_deri <- k2_deri*(1 + 1 / mut)
+    mu_deri <- mu_deri*(1 + 1 / mut)
+  }else if (marginal == "ZIP"){
+    t0_deri <- t0_deri*(1 + 1 / mut)
+    k1_deri <- k1_deri*(1 + 1 / mut)
+    k2_deri <- k2_deri*(1 + 1 / mut)
+    mu_deri <- mu_deri*(1 + 1 / mut)
+  }else{
+    t0_deri <- t0_deri*(phi_fit * (mut + 1) / (mut + phi_fit))
+    k1_deri <- k1_deri*(phi_fit * (mut + 1) / (mut + phi_fit))
+    k2_deri <- k2_deri*(phi_fit * (mut + 1) / (mut + phi_fit))
+    mu_deri <- mu_deri*(phi_fit * (mut + 1) / (mut + phi_fit))
+  }
+  cache <- rbind(t0_deri, k1_deri, k2_deri, mu_deri)
+  cache %*% t(cache)
+}
+
+
+
+# III. Parameters Estimation
+##Using PSO algorithm to estimate parameters within the fitting distribution
+estimation<-function(y, t, marginal, seed, iter=50){
   n<-30
   if(marginal %in% c("Poisson", "ZIP") ){
     d<-6
@@ -35,7 +329,7 @@ estimation<-function(y, t, marginal, iter=50){
     b[5] <- b[5]+1
   }
 
-  gmodel<-my_psoptim(par=b, fn = pso_obj_fct, y=y, t=t, marginal=marginal,
+  gmodel<-my_psoptim(par=b, fn = pso_obj_fct, y=y, t=t, marginal=marginal,seed=seed,
                      lower = bounds[[1]], upper = bounds[[2]], control=options)
   gbest<-gmodel$par
   gcost<-gmodel$value
@@ -44,16 +338,10 @@ estimation<-function(y, t, marginal, iter=50){
 }
 
 
-#' Compute estimated Fisher information matrix and covariance matrix
-#'
-#' @param t
-#' @param para
-#' @param marginal
-#'
-#' @return
-#' @export inference
-#'
-#' @examples
+
+
+# IV. Parameters Inference
+##Compute estimated Fisher information matrix and covariance matrix for estimated parameters
 inference <- function(t, para, marginal){
   fisher <- Fisher_info(t, para, marginal)
   tryCatch(
@@ -73,9 +361,11 @@ inference <- function(t, para, marginal){
 }
 
 
-###### my_psoptim function #######
+
+
+###### my_psoptim function used in estimation#######
 #### This function is modified from Claus Bendtsen's psoptim function in the pso package.
-my_psoptim <- function (par, fn, gr = NULL, ..., lower=-1, upper=1,
+my_psoptim <- function (par, fn, gr = NULL, ..., lower=-1, upper=1, seed,
                         control = list()) {
   fn1 <- function(par) fn(par, ...)/p.fnscale
   mrunif <- function(n,m,lower,upper) {
@@ -178,7 +468,7 @@ my_psoptim <- function (par, fn, gr = NULL, ..., lower=-1, upper=1,
     upperM <- matrix(upper,nrow=npar,ncol=p.s)
   }
   #################################################MODIFY!!!!!!!!!!!!!!!!
-  set.seed(123)
+  set.seed(seed)
   X <- mrunif(npar,p.s,0,1)
   if (!any(is.na(par)) && all(par>=lower) && all(par<=upper)){ #specify initial pos
     X[1,] <- par[1]
