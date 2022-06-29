@@ -30,7 +30,7 @@
 #'
 #' @author Shiyu Ma, Lehan Zou
 #'
-scGTM<-function(gene_index = 100, t=NULL, y1=NULL, gene_name=NULL, marginal="ZIP", iter_num=50, seed=123){
+scGTM<-function(gene_index = 100, t, y1, gene_name=NULL, marginal="ZIP", iter_num=50, seed=123){
   #This function automatically determines Hill- or Valley- trend
   ## Flag calculation
   flag = (cor(t[t<0.5], y1[t<0.5]) < 0) && (cor(t[t>0.5], y1[t>0.5]) > 0) #slope of 1st half and 2nd half
@@ -62,27 +62,27 @@ scGTM<-function(gene_index = 100, t=NULL, y1=NULL, gene_name=NULL, marginal="ZIP
   }
 
   if (marginal == "ZIP"){
-    result['mu'] <- gbest[1]; result['k1'] <- gbest[2]
-    result['k2'] <- gbest[3]; result['t0'] <- gbest[4]; result['phi'] <- NA
-    result['alpha'] <- gbest[5]; result['beta'] <- gbest[6]
+    mu <- gbest[1]; k1 <- gbest[2]
+    k2 <- gbest[3]; t0 <- gbest[4]; phi <- NA
+    alpha <- gbest[5]; beta <- gbest[6]
 
     cat("Best parameter estimation:\n mu , k1 , k2 , t0 , p:\n",round(gbest, 2))
   }else if(marginal == "ZINB"){
     gbest[5] <- ifelse(gbest[6]>1,gbest[6], 1) #phi=alpha????
-    result['mu'] <- gbest[1]; result['k1'] <- gbest[2];result['k2'] <- gbest[3]
-    result['t0'] <- gbest[4]; result['phi'] <- gbest[5]
-    result['alpha'] <- gbest[6]; result['beta'] <- gbest[7]
+    mu <- gbest[1]; k1 <- gbest[2];k2 <- gbest[3]
+    t0 <- gbest[4]; phi <- gbest[5]
+    alpha <- gbest[6]; beta <- gbest[7]
 
     cat("Best parameter estimation:\n mu , k1 , k2 , t0 , phi, p:\n",round(gbest, 2))
   }else if(marginal == "Poisson"){
-    result['mu'] <- gbest[1]; result['k1'] <- gbest[2];result['k2'] <- gbest[3]
-    result['t0'] <- gbest[4]; result['phi'] <- NA; result['p'] = NA
+    mu <- gbest[1]; k1 <- gbest[2];k2 <- gbest[3]
+    t0 <- gbest[4]; phi <- NA; alpha<-NA; beta<-NA
 
     cat("Best parameter estimation:\n mu , k1 , k2 , t0:\n",round(gbest[-length(gbest)], 2))
   }else{
     gbest[6] <- ifelse(gbest[6]>1,gbest[6], 1)
-    result['mu'] <- gbest[1]; result['k1'] <- gbest[2];result['k2'] <- gbest[3]
-    result['t0'] <- gbest[4]; result['phi'] <- gbest[5]; result['p'] = NA
+    mu <- gbest[1]; k1 <- gbest[2];k2 <- gbest[3]
+    t0 <- gbest[4]; phi <- gbest[5]; alpha<-NA; beta<-NA
 
     cat("Best parameter estimation:\n mu , k1 , k2 , t0, phi:\n",round(gbest[-length(gbest)], 2))
   }
@@ -94,13 +94,11 @@ scGTM<-function(gene_index = 100, t=NULL, y1=NULL, gene_name=NULL, marginal="ZIP
   var<-inference(t, gbest, marginal)[[2]] #4x4 matrix
   t0_lower<-inference(t, gbest, marginal)[[3]]
   t0_upper<-inference(t, gbest, marginal)[[4]]
-  result['t0_lower'] <- t0_lower
-  result['t0_upper'] <- t0_upper
 
   cat("\nThe 95% confidence interval of the activation time t0:\n" ,
       "t0 : (" , t0_lower, ", " , t0_upper , ")\n")
   if(length(dim(var))>1){
-    result['t0_std']<-sqrt(var[1,1])
+    t0_std <- sqrt(var[1,1])
     k1_lower <- round(gbest[2] - 1.96 * sqrt(var[2, 2]), 3)
     k1_upper <- round(gbest[2] + 1.96 * sqrt(var[2, 2]), 3)
     k2_lower <- round(gbest[3] - 1.96 * sqrt(var[3, 3]), 3)
@@ -112,10 +110,10 @@ scGTM<-function(gene_index = 100, t=NULL, y1=NULL, gene_name=NULL, marginal="ZIP
         "k1 : (" , k1_lower , ", " , k1_upper , ")\n",
         "k2 : (" , k2_lower , ", " , k2_upper , ")\n")
 
-    result['k1_lower'] <- k1_lower; result['k1_upper'] <- k1_upper; result['k1_std'] <- sqrt(var[2, 2])
-    result['k2_lower'] <- k2_lower; result['k2_upper'] <- k2_upper; result['k2_std'] <- sqrt(var[3, 3])
-    result['mu_lower'] <- mu_lower; result['mu_upper'] <- mu_upper; result['mu_std'] <- sqrt(var[4, 4])
-    result['Fisher'] = 'Non-singular'
+    k1_std <- sqrt(var[2, 2])
+    k2_std <- sqrt(var[3, 3])
+    mu_std <- sqrt(var[4, 4])
+    Fisher <- 'Non-singular'
   }else{
     var <- fisher
     var[1, 1] <- 1 / (var[1, 1] + 1e-100)
@@ -123,7 +121,7 @@ scGTM<-function(gene_index = 100, t=NULL, y1=NULL, gene_name=NULL, marginal="ZIP
     var[3, 3] <- 1 / (var[3, 3] + 1e-100)
     var[4, 4] <- 1 / (var[4, 4] + 1e-100)
 
-    result['t0_std']<-sqrt(var[1,1])
+    t0_std <- sqrt(var[1,1])
     k1_lower <- round(gbest[2] - 1.96 * sqrt(var[2, 2]), 3)
     k1_upper <- round(gbest[2] + 1.96 * sqrt(var[2, 2]), 3)
     k2_lower <- round(gbest[3] - 1.96 * sqrt(var[3, 3]), 3)
@@ -135,14 +133,35 @@ scGTM<-function(gene_index = 100, t=NULL, y1=NULL, gene_name=NULL, marginal="ZIP
         "k1 : (" , k1_lower , ", " , k1_upper , ")\n",
         "k2 : (" , k2_lower , ", " , k2_upper , ")\n")
 
-    result['k1_lower'] <- k1_lower; result['k1_upper'] <- k1_upper; result['k1_std'] <- sqrt(var[2, 2])
-    result['k2_lower'] <- k2_lower; result['k2_upper'] <- k2_upper; result['k2_std'] <- sqrt(var[3, 3])
-    result['mu_lower'] <- mu_lower; result['mu_upper'] <- mu_upper; result['mu_std'] <- sqrt(var[4, 4])
-    result['Fisher'] = 'Singular'
+    k1_std <- sqrt(var[2, 2])
+    k2_std <- sqrt(var[3, 3])
+    mu_std <- sqrt(var[4, 4])
+    Fisher <- 'Singular'
   }
-  result['Transform'] <- as.integer(flag)
+  Transform <- as.integer(flag)
 
-  result
+  list(negative_log_likelihood = gcost,
+       mu = mu,
+       k1 = k1,
+       k2 = k2,
+       t0 = t0,
+       phi = phi,
+       alpha = alpha,
+       beta = beta,
+       t0_lower = t0_lower,
+       t0_upper = t0_upper,
+       t0_std = t0_std,
+       k1_lower = k1_lower,
+       k1_upper = k1_upper,
+       k1_std = k1_std,
+       k2_lower = k2_lower,
+       k2_upper = k2_upper,
+       k2_std = k2_std,
+       mu_lower = mu_lower,
+       mu_upper = mu_upper,
+       mu_std = mu_std,
+       Fisher = Fisher,
+       Transform = Transform)
 }
 
 

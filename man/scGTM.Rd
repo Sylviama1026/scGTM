@@ -6,8 +6,8 @@
 \usage{
 scGTM(
   gene_index = 100,
-  t = NULL,
-  y1 = NULL,
+  t,
+  y1,
   gene_name = NULL,
   marginal = "ZIP",
   iter_num = 50,
