@@ -16,6 +16,7 @@
 #'
 #' @return A tibble of summary results of genes
 #' @importFrom BiocParallel bpparam bplapply
+#' @importFrom tibble as_tibble
 #' @export runscGTM
 #'
 #'
@@ -23,7 +24,7 @@
 #'
 #' @examples
 #' data("df")
-#' res <- scGTM::runscGTM(gene.vec=1:5, t=df$Time, y1=df[,3:7],gene_name=colnames(y1))
+#' res <- scGTM::runscGTM(gene.vec=1:5, t=df$Time, y1=df[,3:7],gene_name=colnames(df[,3:7]))
 runscGTM<-function(gene.vec,
                    t,
                    y1,
@@ -39,7 +40,7 @@ runscGTM<-function(gene.vec,
 
   res <- BiocParallel::bplapply(gene.vec,
                                 function(x, ...) {
-                                  cur_res <- tryCatch(expr = main(gene_index=x,
+                                  cur_res <- tryCatch(expr = scGTM::scGTM(gene_index=x,
                                                                   t=t,
                                                                   y1=y1[,x][[1]],
                                                                   gene_name=gene_name[x],
