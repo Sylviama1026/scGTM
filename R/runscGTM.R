@@ -76,7 +76,7 @@ runscGTM<-function(gene.vec,
 
   res <- simplify2array(res)
   colnames(res) <- gene_name
-  res <- tibble::as_tibble(res,rownames=NA)
+  res <- tibble::as_tibble(res,rownames=NA) #,.name_repair = 'unique'
 
   res
 }

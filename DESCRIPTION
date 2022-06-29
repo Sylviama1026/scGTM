@@ -17,3 +17,6 @@ Depends:
 LazyData: true
 URL: https://github.com/Sylviama1026/scGTM
 BugReports: https://github.com/Sylviama1026/scGTM/issues
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
