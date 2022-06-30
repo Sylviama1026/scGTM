@@ -88,6 +88,8 @@ scGTM<-function(gene_index = 100, t, y1, gene_name=NULL, marginal="ZIP", iter_nu
   }
 
   ## PLOTTING
+  color<-c('red', 'blue', 'orange', 'darkgreen')
+  plot_result(gbest, t, color, marginal, flag, y1, raw)
 
   ## FISHER INFORMATION
   fisher<-inference(t, gbest, marginal)[[1]] #4x4 matrix
@@ -165,7 +167,7 @@ scGTM<-function(gene_index = 100, t, y1, gene_name=NULL, marginal="ZIP", iter_nu
 }
 
 
-# I. Objection_function
+# I. Objective_function
 ##Compute log_likelihood cost function of one gene based on given parameters
 pso_obj_fct<-function(b, y, t, marginal){
   d<- dim(b)
