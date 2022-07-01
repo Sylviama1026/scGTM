@@ -4,7 +4,7 @@
 \alias{plot_result}
 \title{Plot the Fitted Model}
 \usage{
-plot_result(para, t, color, marginal, flag, y1, raw)
+plot_result(para, t, color, marginal, flag, y1, raw = y1, plot_title = NULL)
 }
 \arguments{
 \item{para}{A numeric vector of the Estimated parameters of the predefined distribution,
@@ -19,11 +19,13 @@ length equals the numbers of cells}
 
 \item{flag}{A boolean variable, flag=T indicates Valley shape, flag=F indicates Hill shape}
 
-\item{y1}{A vector of integers, representing the input expression counts of a given gene after transformation,
-length equals the numbers of cells, y1=raw if data hs Hill shape(flag=F)}
+\item{y1}{A vector of integers, representing the input expression counts of a given gene after transformation if having valley shape,
+length equals the numbers of cells, y1=raw if Hill shape(flag=F)}
 
 \item{raw}{A vector of integers, representing the input expression counts of a given gene,
-length equals the numbers of cells}
+length equals the numbers of cells, default=y1}
+
+\item{plot_title}{A string for plot title, default=NULL}
 }
 \value{
 A ggplot object

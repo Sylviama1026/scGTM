@@ -7,10 +7,11 @@
 #' @param color A string vector of length 4 to define plot color, default=\code{c('red', 'blue', 'orange', 'darkgreen')}
 #' @param marginal A string of the distribution name. One of \code{Poisson}, \code{ZIP}, \code{NB} and \code{ZINB}.
 #' @param flag A boolean variable, flag=T indicates Valley shape, flag=F indicates Hill shape
-#' @param y1 A vector of integers, representing the input expression counts of a given gene after transformation,
-#' length equals the numbers of cells, y1=raw if data hs Hill shape(flag=F)
+#' @param y1 A vector of integers, representing the input expression counts of a given gene after transformation if having valley shape,
+#' length equals the numbers of cells, y1=raw if Hill shape(flag=F)
 #' @param raw A vector of integers, representing the input expression counts of a given gene,
-#' length equals the numbers of cells
+#' length equals the numbers of cells, default=y1
+#' @param plot_title A string for plot title, default=NULL
 #'
 #' @return A ggplot object
 #'
@@ -29,7 +30,7 @@
 #' plot_result(para, t, color, marginal, flag, y1)
 #'
 #' @author Shiyu Ma, Lehan Zou
-plot_result <- function(para, t, color, marginal, flag, y1, raw){
+plot_result <- function(para, t, color, marginal, flag, y1, raw=y1, plot_title=NULL){
   mu_fit <- para[1]
   k1_fit <- para[2]
   k2_fit <- para[3]
@@ -63,6 +64,7 @@ plot_result <- function(para, t, color, marginal, flag, y1, raw){
                   label="Fitted"), size = 3) +
     xlab("Pseudotime") +
     ylab("Expression log(count +1)") +
+    ggtitle(plot_title)+
     theme_bw()
 
   if(t0_fit <= 1 & t0_fit >= 0){

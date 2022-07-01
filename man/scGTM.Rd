@@ -15,7 +15,7 @@ scGTM(
 )
 }
 \arguments{
-\item{gene_index}{A single integer vector, indicates which gene to estimate in the model,
+\item{gene_index}{A single integer vector, indicates which gene to estimate in the model,start from 1,
 default=100}
 
 \item{t}{A numeric vector of the input normalized pseudotime data of a given gene,

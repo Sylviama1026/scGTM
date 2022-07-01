@@ -3,7 +3,7 @@
 #' The model fits a gene's expression counts and its normalized pseudotime into one of the four marginal distributions.
 #' This function estimates corresponding parameters and confidence intervals in the corresponding marginal distributions.
 #'
-#' @param gene_index A single integer vector, indicates which gene to estimate in the model,
+#' @param gene_index A single integer vector, indicates which gene to estimate in the model,start from 1,
 #' default=100
 #' @param t A numeric vector of the input normalized pseudotime data of a given gene,
 #' length equals the numbers of cells
@@ -89,7 +89,9 @@ scGTM<-function(gene_index = 100, t, y1, gene_name=NULL, marginal="ZIP", iter_nu
 
   ## PLOTTING
   color<-c('red', 'blue', 'orange', 'darkgreen')
-  plot_result(gbest, t, color, marginal, flag, y1, raw)
+  plot_title<-paste(gene_index, gene_name, ifelse(flag==TRUE,"Valley-shaped","Hill-shaped") , "scGTM w/" , marginal)
+  plot<-plot_result(gbest, t, color, marginal, flag, y1, raw, plot_title)
+  #ggsave(paste(gene_index,marginal,".png"),plot = plot)
 
   ## FISHER INFORMATION
   fisher<-inference(t, gbest, marginal)[[1]] #4x4 matrix
