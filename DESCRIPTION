@@ -13,7 +13,8 @@ Imports:
     BiocParallel,
     tibble,
     cowplot,
-    ggplot2
+    ggplot2,
+    tidyr
 Depends: 
     R (>= 2.10)
 LazyData: true

@@ -17,6 +17,7 @@
 #' @return A tibble of summary results of genes
 #' @importFrom BiocParallel bpparam bplapply
 #' @importFrom tibble as_tibble
+#' @importFrom tidyr unnest
 #' @export runscGTM
 #'
 #'
@@ -78,7 +79,7 @@ runscGTM<-function(gene.vec,
   res <- t(res)
   rownames(res) <- gene_name
   res <- tibble::as_tibble(res,rownames="gene") #,.name_repair = 'unique'
-  res <- tidyr::unnest(res)
+  res <- tidyr::unnest(res,cols=colnames(res)[-1])
 
   res
 }

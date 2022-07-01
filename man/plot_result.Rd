@@ -59,6 +59,7 @@ para<-c(4.05,6.75,5.29,0.44,18.27,15.18)
 y1<-df$Gene2
 plot_result(para, t, color, marginal, flag, y1, y1, "Gene2","~/Desktop/Jessica_lab/scGTM_result/")
 
+
 }
 \author{
 Shiyu Ma, Lehan Zou

@@ -34,6 +34,7 @@
 #' y1<-df$Gene2
 #' plot_result(para, t, color, marginal, flag, y1, y1, "Gene2","~/Desktop/Jessica_lab/scGTM_result/")
 #'
+#'
 #' @author Shiyu Ma, Lehan Zou
 plot_result <- function(para, t, color, marginal, flag, y1, raw=y1, gene_name=NULL, save_dir=NULL){
   mu_fit <- para[1]
@@ -77,8 +78,7 @@ plot_result <- function(para, t, color, marginal, flag, y1, raw=y1, gene_name=NU
       geom_vline(xintercept = t0_fit, linetype="dashed",
                  color = color[3], size=1.5)
   }else{
-    cat("/nt0_fit not valid!")
-    break
+    warning("/nt0_fit not valid!")
   }
 
   if (marginal == 'ZIP'|marginal == 'ZINB'){
