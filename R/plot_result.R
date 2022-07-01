@@ -7,11 +7,9 @@
 #' @param color A string vector of length 4 to define plot color, default=\code{c('red', 'blue', 'orange', 'darkgreen')}
 #' @param marginal A string of the distribution name. One of \code{Poisson}, \code{ZIP}, \code{NB} and \code{ZINB}.
 #' @param flag A boolean variable, flag=T indicates Valley shape, flag=F indicates Hill shape
-#' @param y1 A vector of integers, representing the input expression counts of a given gene after transformation if having valley shape,
-#' length equals the numbers of cells, y1=raw if Hill shape(flag=F)
-#' @param raw A vector of integers, representing the input expression counts of a given gene,
-#' length equals the numbers of cells, default=y1
-#' @param gene_name A vector of strings, indicates the genes' name used in the model,
+#' @param y1 A vector of integers, representing the input expression counts of a given gene,
+#' length equals the numbers of cells
+#' @param gene_name A vector of strings, indicates the genes' name used in the model, shown in plotting,
 #' default=NULL
 #' @param save_dir A vector of strings, indicates saving path of plots, default=NULL(does not save)
 #'
@@ -23,26 +21,32 @@
 #'
 #' @examples
 #' data("df")
-#' y1<-df$Gene1
 #' t<-df$Time
-#' flag<-FALSE
-#' para<-c(2.29,3.27,11.79,0.58,30.4,60.82)
 #' marginal<-"ZIP"
 #' color<-c('red', 'blue', 'orange', 'darkgreen')
-#' plot_result(para, t, color, marginal, flag, y1, y1, "Gene1","~/Desktop/Jessica_lab/scGTM_result/")
-#' para<-c(4.05,6.75,5.29,0.44,18.27,15.18)
-#' y1<-df$Gene2
-#' plot_result(para, t, color, marginal, flag, y1, y1, "Gene2","~/Desktop/Jessica_lab/scGTM_result/")
+#'
+#' #Case1
+#' flag<-FALSE
+#' para<-c(2.29,3.27,11.79,0.58,30.4,60.82)
+#' y1<-df$Gene1
+#' plot_result(para, t, color, marginal, flag, y1, "Gene1","~/Desktop/Jessica_lab/scGTM_result/")
+#'
+#' #Case2
+#' flag<-TRUE
+#' para<-c(2.96143,3.769441,2.098308,0.4638821,2.971249,-2.451574)
+#' y1<-df$Gene11
+#' plot_result(para, t, color, marginal, flag, y1, "Gene11","~/Desktop/Jessica_lab/scGTM_result/")
 #'
 #'
 #' @author Shiyu Ma, Lehan Zou
-plot_result <- function(para, t, color, marginal, flag, y1, raw=y1, gene_name=NULL, save_dir=NULL){
+plot_result <- function(para, t, color, marginal, flag, y1, gene_name=NULL, save_dir=NULL){
   mu_fit <- para[1]
   k1_fit <- para[2]
   k2_fit <- para[3]
   t0_fit <- para[4]
   log_mut_fit <- link(sort(t), mu_fit, k1_fit, k2_fit, t0_fit)
 
+  #transformation if valley
   if (flag){
     log_mut_fit = -log_mut_fit + log(max(y1) + 1)
   }
@@ -50,15 +54,7 @@ plot_result <- function(para, t, color, marginal, flag, y1, raw=y1, gene_name=NU
   p_fit <- 1 / (1 + exp(para[length(para)] + para[length(para)-1]* exp(log_mut_fit)))
   ZIlog_mut_fit <- ifelse(log_mut_fit + log(1 - p_fit) > 0, log_mut_fit + log(1 - p_fit), 0)
 
-  y_1<-ZIlog_mut_fit - 0.1
-  y_2<-p_fit
-  coff<-y_2/y_1
-
   data<-as.data.frame(cbind(t,log_mut_fit,log(y1+1)))
-
-  if (flag){
-    y1<-raw
-  }
 
   p <-ggplot(data)+
     geom_point(aes(x = t, y = log(y1+1),color = log(y1+1)))+

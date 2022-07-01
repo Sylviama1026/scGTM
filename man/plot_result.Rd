@@ -11,7 +11,6 @@ plot_result(
   marginal,
   flag,
   y1,
-  raw = y1,
   gene_name = NULL,
   save_dir = NULL
 )
@@ -29,13 +28,10 @@ length equals the numbers of cells}
 
 \item{flag}{A boolean variable, flag=T indicates Valley shape, flag=F indicates Hill shape}
 
-\item{y1}{A vector of integers, representing the input expression counts of a given gene after transformation if having valley shape,
-length equals the numbers of cells, y1=raw if Hill shape(flag=F)}
+\item{y1}{A vector of integers, representing the input expression counts of a given gene,
+length equals the numbers of cells}
 
-\item{raw}{A vector of integers, representing the input expression counts of a given gene,
-length equals the numbers of cells, default=y1}
-
-\item{gene_name}{A vector of strings, indicates the genes' name used in the model,
+\item{gene_name}{A vector of strings, indicates the genes' name used in the model, shown in plotting,
 default=NULL}
 
 \item{save_dir}{A vector of strings, indicates saving path of plots, default=NULL(does not save)}
@@ -48,16 +44,21 @@ Plot the Fitted Model
 }
 \examples{
 data("df")
-y1<-df$Gene1
 t<-df$Time
-flag<-FALSE
-para<-c(2.29,3.27,11.79,0.58,30.4,60.82)
 marginal<-"ZIP"
 color<-c('red', 'blue', 'orange', 'darkgreen')
-plot_result(para, t, color, marginal, flag, y1, y1, "Gene1","~/Desktop/Jessica_lab/scGTM_result/")
-para<-c(4.05,6.75,5.29,0.44,18.27,15.18)
-y1<-df$Gene2
-plot_result(para, t, color, marginal, flag, y1, y1, "Gene2","~/Desktop/Jessica_lab/scGTM_result/")
+
+#Case1
+flag<-FALSE
+para<-c(2.29,3.27,11.79,0.58,30.4,60.82)
+y1<-df$Gene1
+plot_result(para, t, color, marginal, flag, y1, "Gene1","~/Desktop/Jessica_lab/scGTM_result/")
+
+#Case2
+flag<-TRUE
+para<-c(2.96143,3.769441,2.098308,0.4638821,2.971249,-2.451574)
+y1<-df$Gene11
+plot_result(para, t, color, marginal, flag, y1, "Gene11","~/Desktop/Jessica_lab/scGTM_result/")
 
 
 }

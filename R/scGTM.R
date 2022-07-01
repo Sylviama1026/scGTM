@@ -28,6 +28,12 @@
 #' marginal<-"ZIP"
 #' scGTM(gene_index=1, t=t, y1=y1, marginal=marginal)
 #'
+#' data("df")
+#' t<-df$Time
+#' marginal<-"ZIP"
+#' y1<-df$Gene11
+#' scGTM(gene_index=11, t=t, y1=y1, marginal=marginal)
+#'
 #' @author Shiyu Ma, Lehan Zou
 #'
 scGTM<-function(gene_index = 100, t, y1, gene_name=NULL, marginal="ZIP", iter_num=50, seed=123){
@@ -41,7 +47,6 @@ scGTM<-function(gene_index = 100, t, y1, gene_name=NULL, marginal="ZIP", iter_nu
 
   #transformation if valley
   if(flag){
-    raw <- y1
     y1 <- log(y1+1)
     y1 <- -y1+max(y1) #enforce b=0, align valley with hill estimation
     y1 <- floor(exp(y1)-1)

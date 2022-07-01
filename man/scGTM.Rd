@@ -48,6 +48,12 @@ t<-runif(100, min = 0, max = 1)
 marginal<-"ZIP"
 scGTM(gene_index=1, t=t, y1=y1, marginal=marginal)
 
+data("df")
+t<-df$Time
+marginal<-"ZIP"
+y1<-df$Gene11
+scGTM(gene_index=11, t=t, y1=y1, marginal=marginal)
+
 }
 \author{
 Shiyu Ma, Lehan Zou
