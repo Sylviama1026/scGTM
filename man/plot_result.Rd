@@ -4,16 +4,7 @@
 \alias{plot_result}
 \title{Plot the Fitted Model}
 \usage{
-plot_result(
-  para,
-  t,
-  color,
-  marginal,
-  flag,
-  y1,
-  gene_name = NULL,
-  save_dir = NULL
-)
+plot_result(para, t, color, marginal, flag, y1, gene_name, save_dir = NULL)
 }
 \arguments{
 \item{para}{A numeric vector of the Estimated parameters of the predefined distribution,
@@ -52,13 +43,15 @@ color<-c('red', 'blue', 'orange', 'darkgreen')
 flag<-FALSE
 para<-c(2.29,3.27,11.79,0.58,30.4,60.82)
 y1<-df$Gene1
-plot_result(para, t, color, marginal, flag, y1, "Gene1","~/Desktop/Jessica_lab/scGTM_result/")
+gene_name<-"Gene1"
+plot_result(para, t, color, marginal, flag, y1, gene_name,"~/Desktop/Jessica_lab/scGTM_result/")
 
 #Case2
 flag<-TRUE
 para<-c(2.96143,3.769441,2.098308,0.4638821,2.971249,-2.451574)
 y1<-df$Gene11
-plot_result(para, t, color, marginal, flag, y1, "Gene11","~/Desktop/Jessica_lab/scGTM_result/")
+gene_name<-"Gene11"
+plot_result(para, t, color, marginal, flag, y1, gene_name,"~/Desktop/Jessica_lab/scGTM_result/")
 
 
 }

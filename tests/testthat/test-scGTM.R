@@ -17,6 +17,7 @@ test_that("scGTM works", {
                              color=c('red', 'blue', 'orange', 'darkgreen'),
                              marginal="ZIP",
                              flag=FALSE,
-                             y1=df$Gene1)
+                             y1=df$Gene1,
+                             gene_name="Gene1")
   expect_equal(class(res4)[1], "gg")
 })

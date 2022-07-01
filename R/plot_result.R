@@ -23,23 +23,25 @@
 #' data("df")
 #' t<-df$Time
 #' marginal<-"ZIP"
-#' color<-c('red', 'blue', 'orange', 'darkgreen')
+#' color<-c('red', 'darkviolet', 'orange', 'darkgreen')
 #'
 #' #Case1
 #' flag<-FALSE
 #' para<-c(2.29,3.27,11.79,0.58,30.4,60.82)
 #' y1<-df$Gene1
-#' plot_result(para, t, color, marginal, flag, y1, "Gene1","~/Desktop/Jessica_lab/scGTM_result/")
+#' gene_name<-"Gene1"
+#' plot_result(para, t, color, marginal, flag, y1, gene_name,"~/Desktop/Jessica_lab/scGTM_result/")
 #'
 #' #Case2
 #' flag<-TRUE
 #' para<-c(2.96143,3.769441,2.098308,0.4638821,2.971249,-2.451574)
 #' y1<-df$Gene11
-#' plot_result(para, t, color, marginal, flag, y1, "Gene11","~/Desktop/Jessica_lab/scGTM_result/")
+#' gene_name<-"Gene11"
+#' plot_result(para, t, color, marginal, flag, y1, gene_name,"~/Desktop/Jessica_lab/scGTM_result/")
 #'
 #'
 #' @author Shiyu Ma, Lehan Zou
-plot_result <- function(para, t, color, marginal, flag, y1, gene_name=NULL, save_dir=NULL){
+plot_result <- function(para, t, color, marginal, flag, y1, gene_name, save_dir=NULL){
   mu_fit <- para[1]
   k1_fit <- para[2]
   k2_fit <- para[3]
@@ -57,32 +59,31 @@ plot_result <- function(para, t, color, marginal, flag, y1, gene_name=NULL, save
   data<-as.data.frame(cbind(t,log_mut_fit,log(y1+1)))
 
   p <-ggplot(data)+
-    geom_point(aes(x = t, y = log(y1+1),color = log(y1+1)))+
-    scale_color_gradient(low="blue", high="red",name = "Counts")+
+    geom_point(aes(x = t, y = log(y1+1)),color = "cornflowerblue",size=1)+
+    #scale_color_gradient(low="blue", high="red",name = "Counts")+
     ylim(min(log(y1+1))-1, max(log(y1+1))+1)+
-    geom_line(aes(x= sort(t), y = log_mut_fit),colour=color[1], size=1.2)+
-    geom_text(aes(x = max(t)-0.025,
-                  y = log(y1+1)[length(log(y1+1))]+0.25,
-                  label="Fitted"), size = 3) +
+    geom_line(aes(x= sort(t), y = log_mut_fit,colour="Fitted"), size=1.2)+
     xlab("Pseudotime") +
     ylab("Expression log(count +1)") +
-    ggtitle(paste(gene_name, ifelse(flag==TRUE,"Valley-shaped","Hill-shaped") , "scGTM w/" , marginal))+
-    theme_bw()
+    ggtitle(paste(gene_name, ifelse(flag==TRUE,"Valley-shaped","Hill-shaped") , "\nscGTM w/" , marginal))+
+    theme_bw()+
+    theme(plot.title = element_text(hjust = 0.5))
 
   if(t0_fit <= 1 & t0_fit >= 0){
     p<-p+
-      geom_vline(xintercept = t0_fit, linetype="dashed",
-                 color = color[3], size=1.5)
+      geom_vline(color=color[3], xintercept = t0_fit, linetype="dashed", size=1)+
+      geom_text(aes(x = t0_fit+0.03,
+                    y = -0.5,
+                    label="to"), size = 3)
   }else{
     warning("/nt0_fit not valid!")
   }
 
   if (marginal == 'ZIP'|marginal == 'ZINB'){
     p1<-p+
-      geom_line(aes( x= sort(t), y = ZIlog_mut_fit - 0.1),color=color[2], size=0.8)+
-      geom_text(aes(x = max(t)-0.1,
-                    y = ZIlog_mut_fit[length(t)]-0.1,
-                    label="W/dropout"), size = 3)
+      geom_line(aes( x= sort(t), y = ZIlog_mut_fit - 0.1, color="W/Drop Out"), size=0.8)+
+      scale_colour_manual(name="Lines",values = c("Fitted" = color[1],
+                                                  "W/Drop Out" = color[2]))
     p2<-ggplot(data)+
       geom_line(aes( x= sort(t), y = p_fit),color=color[4], size=1)+
       xlab("Pseudotime") +
@@ -93,7 +94,7 @@ plot_result <- function(para, t, color, marginal, flag, y1, gene_name=NULL, save
                        nrow = 2,
                        align = "hv",
                        axis = "tblr",
-                       rel_heights=c(2.5,1))
+                       rel_heights=c(2,1))
   }
   if(!is.null(save_dir)){
     if(!dir.exists(save_dir)){
