@@ -33,7 +33,7 @@
 scGTM<-function(gene_index = 100, t, y1, gene_name=NULL, marginal="ZIP", iter_num=50, seed=123){
   #This function automatically determines Hill- or Valley- trend
   ## Flag calculation
-  flag = (cor(t[t<0.5], y1[t<0.5]) < 0) && (cor(t[t>0.5], y1[t>0.5]) > 0) #slope of 1st half and 2nd half
+  flag <- (cor(t[t<0.5], y1[t<0.5]) < 0) && (cor(t[t>0.5], y1[t>0.5]) > 0) #slope of 1st half and 2nd half
   cat("The need of transformation: " , flag)  #flag=False=hill
 
   ## ESTIMATION
@@ -86,12 +86,6 @@ scGTM<-function(gene_index = 100, t, y1, gene_name=NULL, marginal="ZIP", iter_nu
 
     cat("Best parameter estimation:\n mu , k1 , k2 , t0, phi:\n",round(gbest[-length(gbest)], 2))
   }
-
-  ## PLOTTING
-  color<-c('red', 'blue', 'orange', 'darkgreen')
-  plot_title<-paste(gene_index, gene_name, ifelse(flag==TRUE,"Valley-shaped","Hill-shaped") , "scGTM w/" , marginal)
-  plot<-plot_result(gbest, t, color, marginal, flag, y1, raw, plot_title)
-  #ggsave(paste(gene_index,marginal,".png"),plot = plot)
 
   ## FISHER INFORMATION
   fisher<-inference(t, gbest, marginal)[[1]] #4x4 matrix

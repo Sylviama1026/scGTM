@@ -11,7 +11,9 @@
 #' length equals the numbers of cells, y1=raw if Hill shape(flag=F)
 #' @param raw A vector of integers, representing the input expression counts of a given gene,
 #' length equals the numbers of cells, default=y1
-#' @param plot_title A string for plot title, default=NULL
+#' @param gene_name A vector of strings, indicates the genes' name used in the model,
+#' default=NULL
+#' @param save_dir A vector of strings, indicates saving path of plots, default=NULL(does not save)
 #'
 #' @return A ggplot object
 #'
@@ -27,10 +29,13 @@
 #' para<-c(2.29,3.27,11.79,0.58,30.4,60.82)
 #' marginal<-"ZIP"
 #' color<-c('red', 'blue', 'orange', 'darkgreen')
-#' plot_result(para, t, color, marginal, flag, y1)
+#' plot_result(para, t, color, marginal, flag, y1, y1, "Gene1","~/Desktop/Jessica_lab/scGTM_result/")
+#' para<-c(4.05,6.75,5.29,0.44,18.27,15.18)
+#' y1<-df$Gene2
+#' plot_result(para, t, color, marginal, flag, y1, y1, "Gene2","~/Desktop/Jessica_lab/scGTM_result/")
 #'
 #' @author Shiyu Ma, Lehan Zou
-plot_result <- function(para, t, color, marginal, flag, y1, raw=y1, plot_title=NULL){
+plot_result <- function(para, t, color, marginal, flag, y1, raw=y1, gene_name=NULL, save_dir=NULL){
   mu_fit <- para[1]
   k1_fit <- para[2]
   k2_fit <- para[3]
@@ -64,14 +69,16 @@ plot_result <- function(para, t, color, marginal, flag, y1, raw=y1, plot_title=N
                   label="Fitted"), size = 3) +
     xlab("Pseudotime") +
     ylab("Expression log(count +1)") +
-    ggtitle(plot_title)+
+    ggtitle(paste(gene_name, ifelse(flag==TRUE,"Valley-shaped","Hill-shaped") , "scGTM w/" , marginal))+
     theme_bw()
 
   if(t0_fit <= 1 & t0_fit >= 0){
     p<-p+
       geom_vline(xintercept = t0_fit, linetype="dashed",
                  color = color[3], size=1.5)
-    p
+  }else{
+    cat("/nt0_fit not valid!")
+    break
   }
 
   if (marginal == 'ZIP'|marginal == 'ZINB'){
@@ -85,11 +92,21 @@ plot_result <- function(para, t, color, marginal, flag, y1, raw=y1, plot_title=N
       xlab("Pseudotime") +
       ylab("Dropout Rate") +
       theme_bw()
-    cowplot::plot_grid(p1,
+    p<-cowplot::plot_grid(p1,
                        p2,
                        nrow = 2,
                        align = "hv",
                        axis = "tblr",
                        rel_heights=c(2.5,1))
   }
+  if(!is.null(save_dir)){
+    if(!dir.exists(save_dir)){
+      dir.create(save_dir)
+    }
+    file_name<-paste(save_dir,gene_name,marginal,".png",sep = "")
+    ggsave(file_name,plot = p)
+  }
+  p
 }
+
+

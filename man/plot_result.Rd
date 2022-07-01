@@ -4,7 +4,17 @@
 \alias{plot_result}
 \title{Plot the Fitted Model}
 \usage{
-plot_result(para, t, color, marginal, flag, y1, raw = y1, plot_title = NULL)
+plot_result(
+  para,
+  t,
+  color,
+  marginal,
+  flag,
+  y1,
+  raw = y1,
+  gene_name = NULL,
+  save_dir = NULL
+)
 }
 \arguments{
 \item{para}{A numeric vector of the Estimated parameters of the predefined distribution,
@@ -25,7 +35,10 @@ length equals the numbers of cells, y1=raw if Hill shape(flag=F)}
 \item{raw}{A vector of integers, representing the input expression counts of a given gene,
 length equals the numbers of cells, default=y1}
 
-\item{plot_title}{A string for plot title, default=NULL}
+\item{gene_name}{A vector of strings, indicates the genes' name used in the model,
+default=NULL}
+
+\item{save_dir}{A vector of strings, indicates saving path of plots, default=NULL(does not save)}
 }
 \value{
 A ggplot object
@@ -41,7 +54,10 @@ flag<-FALSE
 para<-c(2.29,3.27,11.79,0.58,30.4,60.82)
 marginal<-"ZIP"
 color<-c('red', 'blue', 'orange', 'darkgreen')
-plot_result(para, t, color, marginal, flag, y1)
+plot_result(para, t, color, marginal, flag, y1, y1, "Gene1","~/Desktop/Jessica_lab/scGTM_result/")
+para<-c(4.05,6.75,5.29,0.44,18.27,15.18)
+y1<-df$Gene2
+plot_result(para, t, color, marginal, flag, y1, y1, "Gene2","~/Desktop/Jessica_lab/scGTM_result/")
 
 }
 \author{

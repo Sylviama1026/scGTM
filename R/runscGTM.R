@@ -75,8 +75,10 @@ runscGTM<-function(gene.vec,
                                 BPPARAM = BPPARAM)
 
   res <- simplify2array(res)
-  colnames(res) <- gene_name
-  res <- tibble::as_tibble(res,rownames=NA) #,.name_repair = 'unique'
+  res <- t(res)
+  rownames(res) <- gene_name
+  res <- tibble::as_tibble(res,rownames="gene") #,.name_repair = 'unique'
+  res <- tidyr::unnest(res)
 
   res
 }
