@@ -88,7 +88,9 @@ plot_result <- function(para, t, color, marginal, flag, y1, gene_name, save_dir=
       geom_line(aes( x= sort(t), y = p_fit),color=color[4], size=1)+
       xlab("Pseudotime") +
       ylab("Dropout Rate") +
-      theme_bw()
+      theme_bw()+
+      scale_y_continuous(labels=function(x) sprintf("%.2e", x))
+
     p<-cowplot::plot_grid(p1,
                        p2,
                        nrow = 2,
