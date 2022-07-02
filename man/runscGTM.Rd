@@ -26,7 +26,7 @@ number of rows equals the numbers of cells, number of columns equals the numbers
 
 \item{gene_name}{A vector of strings, indicates the genes' name used in the model}
 
-\item{marginal}{A string of the distribution name. One of \code{Poisson}, \code{ZIP}, \code{NB} and \code{ZINB}.
+\item{marginal}{A string of the distribution name. One of \code{Poisson}, \code{ZIP}, \code{NB}, \code{ZINB} and \code{Gaussian}.
 default=\code{ZIP}}
 
 \item{iter_num}{A single integer vector, indicates max number of iteration used in the PSO algorithm

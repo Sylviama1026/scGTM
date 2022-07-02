@@ -22,7 +22,6 @@
 #' @examples
 #' data("df")
 #' t<-df$Time
-#' marginal<-"ZIP"
 #' color<-c('red', 'darkviolet', 'orange', 'darkgreen')
 #'
 #' #Case1
@@ -30,6 +29,7 @@
 #' para<-c(2.29,3.27,11.79,0.58,30.4,60.82)
 #' y1<-df$Gene1
 #' gene_name<-"Gene1"
+#' marginal<-"ZIP"
 #' plot_result(para, t, color, marginal, flag, y1, gene_name,"~/Desktop/Jessica_lab/scGTM_result/")
 #'
 #' #Case2
@@ -37,6 +37,15 @@
 #' para<-c(2.96143,3.769441,2.098308,0.4638821,2.971249,-2.451574)
 #' y1<-df$Gene11
 #' gene_name<-"Gene11"
+#' marginal<-"ZIP"
+#' plot_result(para, t, color, marginal, flag, y1, gene_name,"~/Desktop/Jessica_lab/scGTM_result/")
+#'
+#' #Case3
+#' flag<-FALSE
+#' para<-c(2.35,6.27,6.27,0.49)
+#' y1<-df$Gene1
+#' gene_name<-"Gene1"
+#' marginal<-"Gaussian"
 #' plot_result(para, t, color, marginal, flag, y1, gene_name,"~/Desktop/Jessica_lab/scGTM_result/")
 #'
 #'
@@ -67,7 +76,8 @@ plot_result <- function(para, t, color, marginal, flag, y1, gene_name, save_dir=
     ylab("Expression log(count +1)") +
     ggtitle(paste(gene_name, ifelse(flag==TRUE,"Valley-shaped","Hill-shaped") , "\nscGTM w/" , marginal))+
     theme_bw()+
-    theme(plot.title = element_text(hjust = 0.5))
+    theme(plot.title = element_text(hjust = 0.5)) +
+    guides(color=guide_legend(title="Lines"))
 
   if(t0_fit <= 1 & t0_fit >= 0){
     p<-p+
@@ -82,8 +92,8 @@ plot_result <- function(para, t, color, marginal, flag, y1, gene_name, save_dir=
   if (marginal == 'ZIP'|marginal == 'ZINB'){
     p1<-p+
       geom_line(aes( x= sort(t), y = ZIlog_mut_fit - 0.1, color="W/Drop Out"), size=0.8)+
-      scale_colour_manual(name="Lines",values = c("Fitted" = color[1],
-                                                  "W/Drop Out" = color[2]))
+      scale_colour_manual(values = c("Fitted" = color[1],
+                                     "W/Drop Out" = color[2]))
     p2<-ggplot(data)+
       geom_line(aes( x= sort(t), y = p_fit),color=color[4], size=1)+
       xlab("Pseudotime") +

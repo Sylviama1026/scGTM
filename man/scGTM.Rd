@@ -54,6 +54,12 @@ marginal<-"ZIP"
 y1<-df$Gene11
 scGTM(gene_index=11, t=t, y1=y1, marginal=marginal)
 
+data("df")
+t<-df$Time
+marginal<-"Gaussian"
+y1<-df$Gene1
+scGTM(gene_index=1, t=t, y1=y1, marginal=marginal)
+
 }
 \author{
 Shiyu Ma, Lehan Zou

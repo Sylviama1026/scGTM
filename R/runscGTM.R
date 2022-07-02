@@ -6,7 +6,7 @@
 #' @param y1 A vector of integers, representing the input expression counts of corresponding lists of genes,
 #' number of rows equals the numbers of cells, number of columns equals the numbers of targeted genes
 #' @param gene_name A vector of strings, indicates the genes' name used in the model
-#' @param marginal A string of the distribution name. One of \code{Poisson}, \code{ZIP}, \code{NB} and \code{ZINB}.
+#' @param marginal A string of the distribution name. One of \code{Poisson}, \code{ZIP}, \code{NB}, \code{ZINB} and \code{Gaussian}.
 #' default=\code{ZIP}
 #' @param iter_num A single integer vector, indicates max number of iteration used in the PSO algorithm
 #' that estimates model parameters
