@@ -24,9 +24,10 @@ length equals the numbers of cells}
 \item{y1}{A vector of integers, representing the input expression counts of a given gene,
 length equals the numbers of cells}
 
-\item{gene_name}{A single string vector, indicates the gene name used in the model}
+\item{gene_name}{A single string vector, indicates the gene name used in the model,
+default=NULL}
 
-\item{marginal}{A string of the distribution name. One of \code{Poisson}, \code{ZIP}, \code{NB} and \code{ZINB}.
+\item{marginal}{A string of the distribution name. One of \code{Poisson}, \code{ZIP}, \code{NB}, \code{ZINB}, and  \code{Gaussian}.
 default=\code{ZIP}}
 
 \item{iter_num}{A single integer vector, indicates max number of iteration used in the PSO algorithm

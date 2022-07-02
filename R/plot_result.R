@@ -1,16 +1,15 @@
 #' Plot the Fitted Model
 #'
 #' @param para A numeric vector of the Estimated parameters of the predefined distribution,
-#' length equals 6 or 7 depending on distribution(take 6 for Poisson or ZIP, 7 for NB and ZINB)
+#' length equals 6 or 7 depending on distribution(take 6 for Poisson or ZIP or Gaussian, 7 for NB and ZINB)
 #' @param t A numeric vector of the input normalized pseudotime data of a given gene,
 #' length equals the numbers of cells
-#' @param color A string vector of length 4 to define plot color, default=\code{c('red', 'blue', 'orange', 'darkgreen')}
-#' @param marginal A string of the distribution name. One of \code{Poisson}, \code{ZIP}, \code{NB} and \code{ZINB}.
+#' @param color A string vector of length 4 to define plot color
+#' @param marginal A string of the distribution name. One of \code{Poisson}, \code{ZIP}, \code{NB}, \code{ZINB}, and \code{Gaussian}.
 #' @param flag A boolean variable, flag=T indicates Valley shape, flag=F indicates Hill shape
 #' @param y1 A vector of integers, representing the input expression counts of a given gene,
 #' length equals the numbers of cells
-#' @param gene_name A vector of strings, indicates the genes' name used in the model, shown in plotting,
-#' default=NULL
+#' @param gene_name A vector of strings, indicates the genes' name used in the model, shown in plotting
 #' @param save_dir A vector of strings, indicates saving path of plots, default=NULL(does not save)
 #'
 #' @return A ggplot object

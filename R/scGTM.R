@@ -9,8 +9,9 @@
 #' length equals the numbers of cells
 #' @param y1 A vector of integers, representing the input expression counts of a given gene,
 #' length equals the numbers of cells
-#' @param gene_name A single string vector, indicates the gene name used in the model
-#' @param marginal A string of the distribution name. One of \code{Poisson}, \code{ZIP}, \code{NB} and \code{ZINB}.
+#' @param gene_name A single string vector, indicates the gene name used in the model,
+#' default=NULL
+#' @param marginal A string of the distribution name. One of \code{Poisson}, \code{ZIP}, \code{NB}, \code{ZINB}, and  \code{Gaussian}.
 #' default=\code{ZIP}
 #' @param iter_num A single integer vector, indicates max number of iteration used in the PSO algorithm
 #' that estimates model parameters
@@ -192,8 +193,6 @@ scGTM<-function(gene_index = 100, t, y1, gene_name=NULL, marginal="ZIP", iter_nu
 # I. Objective_function
 ##Compute log_likelihood cost function of one gene based on given parameters
 pso_obj_fct<-function(b, y, t, marginal){
-  d<- dim(b)
-
   cost <- 0
   if(marginal == "ZINB"){
     mu<-b[1]
