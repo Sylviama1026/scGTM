@@ -46,6 +46,18 @@ Estimate Parameters in Single-cell Gene Expression Generalized Trend Model on a 
 \examples{
 data("df")
 res <- scGTM::runscGTM(gene.vec=1:5, t=df$Time, y1=df[,3:7],gene_name=colnames(df[,3:7]))
+
+data("sce")
+t_sce<-SummarizedExperiment::colData(sce)$pseudotime
+d_sce<-t(SingleCellExperiment::counts(sce)[1:5,])
+sce_sort<-cbind('Time'= t_sce,d_sce)
+sce_sort <- tibble::as_tibble(sce_sort)
+sce_sort <- sce_sort[order(sce_sort$Time),]
+sce_sort <- tibble::rownames_to_column(sce_sort, "Index")
+if(class(sce)[1]=="SingleCellExperiment"){t<-sce_sort$Time;y1<-sce_sort[,3:7]}
+name<-rownames(SingleCellExperiment::counts(sce)[1:5,])
+res1 <- scGTM::runscGTM(gene.vec=1:5, t=t, y1=y1, gene_name=name)
+
 }
 \author{
 Shiyu Ma

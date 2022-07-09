@@ -8,3 +8,8 @@
 #' }
 #' @usage data("df")
 "df"
+
+#' A SingelCellExperiment dataset containing 2,000 genes and 2,291 cells
+#' @format A dataset with 2,000 rows and 2,291 cols
+#' @usage data("sce")
+"sce"

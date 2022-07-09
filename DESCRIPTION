@@ -14,10 +14,13 @@ Imports:
     tibble,
     cowplot,
     ggplot2,
-    tidyr
+    tidyr,
+    SingleCellExperiment,
+    SummarizedExperiment
 Depends: 
-    R (>= 2.10)
+    R (>= 3.5.0)
 LazyData: true
+LazyDataCompression:xz
 URL: https://github.com/Sylviama1026/scGTM
 BugReports: https://github.com/Sylviama1026/scGTM/issues
 Suggests: 

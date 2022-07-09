@@ -61,6 +61,17 @@ marginal<-"Gaussian"
 y1<-df$Gene1
 scGTM(gene_index=1, t=t, y1=y1, marginal=marginal)
 
+data("sce")
+t_sce<-SummarizedExperiment::colData(sce)$pseudotime
+d_sce<-SingleCellExperiment::counts(sce)[1,]
+sce_sort <- as.data.frame(cbind('Time'= t_sce,d_sce))
+sce_sort <- sce_sort[order(sce_sort$Time),]
+sce_sort <- tibble::rownames_to_column(sce_sort, "rownames(sce_sort)")
+if(class(sce)[1]=="SingleCellExperiment"){t<-sce_sort$Time;y1<-sce_sort[,3]}
+marginal<-"ZIP"
+scGTM(gene_index=1, t=t, y1=y1, marginal=marginal)
+
+
 }
 \author{
 Shiyu Ma, Lehan Zou

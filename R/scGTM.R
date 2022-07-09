@@ -21,6 +21,8 @@
 #' @return The log_likelihood cost, estimated parameters, and their confidence intervals of a gene
 #'
 #' @importFrom stats dnbinom dpois optim runif cor dnorm
+#' @importFrom SummarizedExperiment colData
+#' @importFrom SingleCellExperiment counts
 #' @export scGTM
 #'
 #' @examples
@@ -40,6 +42,17 @@
 #' marginal<-"Gaussian"
 #' y1<-df$Gene1
 #' scGTM(gene_index=1, t=t, y1=y1, marginal=marginal)
+#'
+#' data("sce")
+#' t_sce<-SummarizedExperiment::colData(sce)$pseudotime
+#' d_sce<-SingleCellExperiment::counts(sce)[1,]
+#' sce_sort <- as.data.frame(cbind('Time'= t_sce,d_sce))
+#' sce_sort <- sce_sort[order(sce_sort$Time),]
+#' sce_sort <- tibble::rownames_to_column(sce_sort, "rownames(sce_sort)")
+#' if(class(sce)[1]=="SingleCellExperiment"){t<-sce_sort$Time;y1<-sce_sort[,3]}
+#' marginal<-"ZIP"
+#' scGTM(gene_index=1, t=t, y1=y1, marginal=marginal)
+#'
 #'
 #' @author Shiyu Ma, Lehan Zou
 #'
@@ -75,33 +88,33 @@ scGTM<-function(gene_index = 100, t, y1, gene_name=NULL, marginal="ZIP", iter_nu
 
   if (marginal == "ZIP"){
     mu <- gbest[1]; k1 <- gbest[2]
-    k2 <- gbest[3]; t0 <- gbest[4]; phi <- NA
+    k2 <- gbest[3]; t0 <- gbest[4]; phi <- NA; sd<-NA
     alpha <- gbest[5]; beta <- gbest[6]
 
     cat("Best parameter estimation:\n mu , k1 , k2 , t0 , p:\n",round(gbest, 2))
-  }else if(marginal == "ZINB"){
-    gbest[5] <- ifelse(gbest[6]>1,gbest[6], 1) #phi=alpha????
+  }else if(marginal == "ZINB"){ #use 7 para,
+    gbest[6] <- ifelse(gbest[6]>1,gbest[6], 1) #alpha>1
     mu <- gbest[1]; k1 <- gbest[2];k2 <- gbest[3]
-    t0 <- gbest[4]; phi <- gbest[5]
+    t0 <- gbest[4]; phi <- gbest[5]; sd<-NA
     alpha <- gbest[6]; beta <- gbest[7]
 
     cat("Best parameter estimation:\n mu , k1 , k2 , t0 , phi, p:\n",round(gbest, 2))
-  }else if(marginal == "Poisson"){
+  }else if(marginal == "Poisson"){ #use 4 para
     mu <- gbest[1]; k1 <- gbest[2];k2 <- gbest[3]
-    t0 <- gbest[4]; phi <- NA; alpha<-NA; beta<-NA
+    t0 <- gbest[4]; phi <- NA; sd<-NA; alpha<-NA; beta<-NA
 
     cat("Best parameter estimation:\n mu , k1 , k2 , t0:\n",round(gbest[-length(gbest)], 2))
-  }else if(marginal == "NB"){
-    gbest[6] <- ifelse(gbest[6]>1,gbest[6], 1)
+  }else if(marginal == "NB"){ #use 5 para
+    gbest[6] <- ifelse(gbest[6]>1,gbest[6], 1) #alpha>1
     mu <- gbest[1]; k1 <- gbest[2];k2 <- gbest[3]
-    t0 <- gbest[4]; phi <- gbest[5]; alpha<-NA; beta<-NA
+    t0 <- gbest[4]; phi <- gbest[5]; sd<-NA; alpha<-NA; beta<-NA
 
     cat("Best parameter estimation:\n mu , k1 , k2 , t0, phi:\n",round(gbest[-length(gbest)], 2))
-  }else{
-    mu <- gbest[1]; k1 <- gbest[2];k2 <- gbest[2]
-    t0 <- gbest[4]; phi <- NA; alpha<-NA; beta<-NA
+  }else{ #Gaussian, use 5 para
+    mu <- gbest[1]; k1 <- gbest[2];k2 <- gbest[3]
+    t0 <- gbest[4]; phi<-NA; sd <- gbest[5]; alpha<-NA; beta<-NA
 
-    cat("Best parameter estimation:\n mu , k1 , k2, t0:\n",round(gbest[c(1,2,2,4)], 2))
+    cat("Best parameter estimation:\n mu , k1 , k2, t0, sd:\n",round(gbest[-length(gbest)], 2))
   }
 
   ## FISHER INFORMATION
@@ -120,11 +133,6 @@ scGTM<-function(gene_index = 100, t, y1, gene_name=NULL, marginal="ZIP", iter_nu
     k2_upper <- round(gbest[3] + 1.96 * sqrt(var[3, 3]), 3)
     mu_lower <- round(gbest[1] - 1.96 * sqrt(var[4, 4]), 3)
     mu_upper <- round(gbest[1] + 1.96 * sqrt(var[4, 4]), 3)
-
-    if(k1==k2){
-      k2_lower<-NA
-      k2_upper<-NA
-    }
 
     cat("\nThe 95% CIs for activation strength k1 and k2:\n" ,
         "k1 : (" , k1_lower , ", " , k1_upper , ")\n",
@@ -149,11 +157,6 @@ scGTM<-function(gene_index = 100, t, y1, gene_name=NULL, marginal="ZIP", iter_nu
     mu_lower <- round(gbest[1] - 1.96 * sqrt(var[4, 4]), 3)
     mu_upper <- round(gbest[1] + 1.96 * sqrt(var[4, 4]), 3)
 
-    if(k1==k2){
-      k2_lower<-NA
-      k2_upper<-NA
-    }
-
     cat("\nThe 95% CIs for activation strength k1 and k2:\n" ,
         "k1 : (" , k1_lower , ", " , k1_upper , ")\n",
         "k2 : (" , k2_lower , ", " , k2_upper , ")\n")
@@ -171,6 +174,7 @@ scGTM<-function(gene_index = 100, t, y1, gene_name=NULL, marginal="ZIP", iter_nu
        k2 = k2,
        t0 = t0,
        phi = phi,
+       sd = sd, #Gaussian
        alpha = alpha,
        beta = beta,
        t0_lower = t0_lower,
@@ -232,14 +236,15 @@ pso_obj_fct<-function(b, y, t, marginal){
     beta<-b[6]
     cost <- single_gene_log_likelihood_Poisson(y, t, mu, k1, k2, t0)
   }
-  else{
+  else{ #Gaussian
     mu<-b[1]
     k1<-b[2]
     k2<-b[3]
     t0<-b[4]
-    alpha<-b[5]
-    beta<-b[6]
-    cost <- single_gene_log_likelihood_Gaussian(y, t, mu, k1, k1, t0)
+    sd<-b[5]
+    alpha<-b[6]
+    beta<-b[7]
+    cost <- single_gene_log_likelihood_Gaussian(y, t, mu, k1, k2, t0, sd)
   }
   cost
 }
@@ -252,11 +257,13 @@ link<-function(t, mu, k1, k2, t0){
 }
 
 ## Gaussian
-single_gene_log_likelihood_Gaussian<-function(y, t, mu, k1, k2, t0){
+single_gene_log_likelihood_Gaussian<-function(y, t, mu, k1, k2, t0, sd){
   bell<-link(t, mu, k1, k2, t0)
   mut<-ifelse(exp(bell)>0.1, exp(bell), 0.1)
 
-  sum(-log(dnorm(y,  mean=mut, sd=1) + 1e-300))
+  sd <- ifelse(sd>0, sd, 1e-300)
+
+  sum(-log(dnorm(y,  mean=mut, sd=sd) + 1e-300))
 }
 
 ## Poisson
@@ -313,13 +320,21 @@ single_gene_log_likelihood_ZINB<-function(y, t, mu, k1, k2, t0, phi, alpha, beta
 # II. Fisher information matrix
 ##Compute Fisher information matrix of interested parameters
 Fisher_info <- function(t, para, marginal){
-  if (marginal == "ZIP" | marginal == "Poisson" | marginal == "Gaussian"){
+  if (marginal == "ZIP" | marginal == "Poisson"){
     mu_fit <- para[1]
     k1_fit <- para[2]
     k2_fit <- para[3]
     t0_fit <- para[4]
     alpha_fit <- para[5]
     beta_fit <- para[6]
+  }else if(marginal == "Gaussian"){
+    mu_fit <- para[1]
+    k1_fit <- para[2]
+    k2_fit <- para[3]
+    t0_fit <- para[4]
+    sd_fit <- para[5]
+    alpha_fit <- para[6]
+    beta_fit <- para[7]
   }else{
     mu_fit <- para[1]
     k1_fit <- para[2]
@@ -360,7 +375,7 @@ Fisher_info <- function(t, para, marginal){
 ##Using PSO algorithm to estimate parameters within the fitting distribution
 estimation<-function(y, t, marginal, seed, iter=50){
   n<-30
-  if(marginal %in% c("Poisson", "ZIP", "Gaussian") ){
+  if(marginal %in% c("Poisson", "ZIP") ){
     d<-6
     bounds<-list(c(log(min(y+1)),-99,-99,min(t),-99,-99),
                  c(log(max(y)),99,99,max(t),99,99))
@@ -368,7 +383,11 @@ estimation<-function(y, t, marginal, seed, iter=50){
     d<-7
     bounds<-list(c(log(min(y+1)),-99,-99,min(t), 1, 0, 0),
                  c(log(max(y+1)),99,99,max(t), 100, 100, 100))
-  } else{
+  } else if(marginal=="Gaussian"){
+    d<-7
+    bounds<-list(c(log(min(y+1)),-99,-99,min(t), 1e-300, 0, 0),
+                 c(log(max(y+1)),99,99,max(t), 100, 100, 100))
+  }else{
     stop("Enter a valid marginal distribution: [NB, ZINB, Poisson, ZIP, Gaussian]!")
   }
   b <- runif(d)
@@ -379,7 +398,7 @@ estimation<-function(y, t, marginal, seed, iter=50){
   b[d] <- 0.1 #set beta=0.1
   b[2] <- b[2]+5
   b[3] <- b[3]+5
-  if (d == 7){
+  if (d == 7){ #phi or sd
     b[5] <- b[5]+1
   }
 
@@ -535,7 +554,7 @@ my_psoptim <- function (par, fn, gr = NULL, ..., lower=-1, upper=1, seed,
     else{
       X[4,] <- runif(1, min = 0, max = 0.5)
     }
-    if (p.s == 7){
+    if (npar == 7){
       X[5,] <- X[5,]+1
     }
   }
@@ -780,4 +799,3 @@ my_psoptim <- function (par, fn, gr = NULL, ..., lower=-1, upper=1, seed,
                                                          x=stats.trace.x)))
   return(o)
 }
-
