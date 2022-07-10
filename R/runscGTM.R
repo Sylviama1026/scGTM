@@ -27,7 +27,7 @@
 #'
 #' @examples
 #' data("df")
-#' res <- scGTM::runscGTM(gene.vec=1:5, t=df$Time, y1=df[,3:7],gene_name=colnames(df[,3:7]))
+#' res <- scGTM::runscGTM(gene.vec=1:3, t=df$Time, y1=df[,3:5],gene_name=colnames(df[,3:5]))
 #'
 #' data("sce")
 #' t_sce<-SummarizedExperiment::colData(sce)$pseudotime
@@ -60,7 +60,8 @@ runscGTM<-function(gene.vec,
                                                                   y1=y1[,x][[1]],
                                                                   gene_name=gene_name[x],
                                                                   marginal=marginal,
-                                                                  iter_num=iter_num),
+                                                                  iter_num=iter_num,
+                                                                  seed=seed),
                                                       error = function(e) {
                                                         list(negative_log_likelihood = NA,
                                                              mu = NA,
@@ -68,6 +69,7 @@ runscGTM<-function(gene.vec,
                                                              k2 = NA,
                                                              t0 = NA,
                                                              phi = NA,
+                                                             sd = NA, #Gaussian
                                                              alpha = NA,
                                                              beta = NA,
                                                              t0_lower = NA,
@@ -83,7 +85,8 @@ runscGTM<-function(gene.vec,
                                                              mu_upper = NA,
                                                              mu_std = NA,
                                                              Fisher = NA,
-                                                             Transform = NA)
+                                                             Transform = NA,
+                                                             Design_para = NA)
                                                       })
                                   cur_res
                                 },

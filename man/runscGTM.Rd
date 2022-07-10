@@ -45,7 +45,7 @@ Estimate Parameters in Single-cell Gene Expression Generalized Trend Model on a 
 }
 \examples{
 data("df")
-res <- scGTM::runscGTM(gene.vec=1:5, t=df$Time, y1=df[,3:7],gene_name=colnames(df[,3:7]))
+res <- scGTM::runscGTM(gene.vec=1:3, t=df$Time, y1=df[,3:5],gene_name=colnames(df[,3:5]))
 
 data("sce")
 t_sce<-SummarizedExperiment::colData(sce)$pseudotime

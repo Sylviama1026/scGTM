@@ -11,7 +11,9 @@ scGTM(
   gene_name = NULL,
   marginal = "ZIP",
   iter_num = 50,
-  seed = 123
+  seed = 123,
+  k_design = NULL,
+  Design_X = NULL
 )
 }
 \arguments{
@@ -35,6 +37,12 @@ that estimates model parameters}
 
 \item{seed}{A numeric variable of the random seed, affecting parametric fitting of the marginal distribution.
 default=123}
+
+\item{k_design}{A single positive integer, indicates the number of variables in Design matrix,
+default=NULL}
+
+\item{Design_X}{A numerical matrix whose number of rows equals the length of y1,
+number of columns equals k_design, default=NULL}
 }
 \value{
 The log_likelihood cost, estimated parameters, and their confidence intervals of a gene
@@ -60,17 +68,6 @@ t<-df$Time
 marginal<-"Gaussian"
 y1<-df$Gene1
 scGTM(gene_index=1, t=t, y1=y1, marginal=marginal)
-
-data("sce")
-t_sce<-SummarizedExperiment::colData(sce)$pseudotime
-d_sce<-SingleCellExperiment::counts(sce)[1,]
-sce_sort <- as.data.frame(cbind('Time'= t_sce,d_sce))
-sce_sort <- sce_sort[order(sce_sort$Time),]
-sce_sort <- tibble::rownames_to_column(sce_sort, "rownames(sce_sort)")
-if(class(sce)[1]=="SingleCellExperiment"){t<-sce_sort$Time;y1<-sce_sort[,3]}
-marginal<-"ZIP"
-scGTM(gene_index=1, t=t, y1=y1, marginal=marginal)
-
 
 }
 \author{

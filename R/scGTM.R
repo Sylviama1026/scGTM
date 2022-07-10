@@ -17,12 +17,14 @@
 #' that estimates model parameters
 #' @param seed A numeric variable of the random seed, affecting parametric fitting of the marginal distribution.
 #' default=123
+#' @param k_design A single positive integer, indicates the number of variables in Design matrix,
+#' default=NULL
+#' @param Design_X A numerical matrix whose number of rows equals the length of y1,
+#' number of columns equals k_design, default=NULL
 #'
 #' @return The log_likelihood cost, estimated parameters, and their confidence intervals of a gene
 #'
 #' @importFrom stats dnbinom dpois optim runif cor dnorm
-#' @importFrom SummarizedExperiment colData
-#' @importFrom SingleCellExperiment counts
 #' @export scGTM
 #'
 #' @examples
@@ -43,20 +45,10 @@
 #' y1<-df$Gene1
 #' scGTM(gene_index=1, t=t, y1=y1, marginal=marginal)
 #'
-#' data("sce")
-#' t_sce<-SummarizedExperiment::colData(sce)$pseudotime
-#' d_sce<-SingleCellExperiment::counts(sce)[1,]
-#' sce_sort <- as.data.frame(cbind('Time'= t_sce,d_sce))
-#' sce_sort <- sce_sort[order(sce_sort$Time),]
-#' sce_sort <- tibble::rownames_to_column(sce_sort, "rownames(sce_sort)")
-#' if(class(sce)[1]=="SingleCellExperiment"){t<-sce_sort$Time;y1<-sce_sort[,3]}
-#' marginal<-"ZIP"
-#' scGTM(gene_index=1, t=t, y1=y1, marginal=marginal)
-#'
-#'
 #' @author Shiyu Ma, Lehan Zou
 #'
-scGTM<-function(gene_index = 100, t, y1, gene_name=NULL, marginal="ZIP", iter_num=50, seed=123){
+scGTM<-function(gene_index = 100, t, y1, gene_name=NULL, marginal="ZIP", iter_num=50, seed=123,
+                k_design=NULL, Design_X=NULL){
   #This function automatically determines Hill- or Valley- trend
   ## Flag calculation
   flag <- (cor(t[t<0.5], y1[t<0.5]) < 0) && (cor(t[t>0.5], y1[t>0.5]) > 0) #slope of 1st half and 2nd half
@@ -72,7 +64,12 @@ scGTM<-function(gene_index = 100, t, y1, gene_name=NULL, marginal="ZIP", iter_nu
     y1 <- floor(exp(y1)-1)
   }
 
-  est<-estimation(y1, t, marginal, seed, iter_num)
+  #Add Design Matrix
+  if(!is.null(k_design)){
+    est<-estimation(y1, t, marginal, seed, iter_num, k_design, Design_X)
+  }else{
+    est<-estimation(y1, t, marginal, seed, iter_num)
+  }
 
   gcost <- est[[1]]
   gbest <- est[[2]]
@@ -168,6 +165,17 @@ scGTM<-function(gene_index = 100, t, y1, gene_name=NULL, marginal="ZIP", iter_nu
   }
   Transform <- as.integer(flag)
 
+  #Add Design Matrix
+  if(!is.null(k_design)){
+    if(marginal %in% c("Poisson", "ZIP") ){
+      Design_para<-gbest[7:length(gbest)]
+    } else{ #marginal %in% c("NB", "ZINB", "Gaussian")
+      Design_para<-gbest[8:length(gbest)]
+    }
+  }else{
+    Design_para<-NA
+  }
+
   list(negative_log_likelihood = gcost,
        mu = mu,
        k1 = k1,
@@ -190,13 +198,14 @@ scGTM<-function(gene_index = 100, t, y1, gene_name=NULL, marginal="ZIP", iter_nu
        mu_upper = mu_upper,
        mu_std = mu_std,
        Fisher = Fisher,
-       Transform = Transform)
+       Transform = Transform,
+       Design_para = Design_para)
 }
 
 
 # I. Objective_function
 ##Compute log_likelihood cost function of one gene based on given parameters
-pso_obj_fct<-function(b, y, t, marginal){
+pso_obj_fct<-function(b, y, t, marginal,Design_X=NULL){
   cost <- 0
   if(marginal == "ZINB"){
     mu<-b[1]
@@ -206,7 +215,12 @@ pso_obj_fct<-function(b, y, t, marginal){
     phi<-b[5]
     alpha<-b[6]
     beta<-b[7]
-    cost <- single_gene_log_likelihood_ZINB(y, t, mu, k1, k2, t0, phi, alpha, beta)
+    if(!is.null(Design_X)){
+      k_design_para<-b[8:length(b)]
+      cost <- single_gene_log_likelihood_ZINB(y, t, mu, k1, k2, t0, phi, alpha, beta, Design_X, k_design_para)
+    }else{
+      cost <- single_gene_log_likelihood_ZINB(y, t, mu, k1, k2, t0, phi, alpha, beta)
+    }
   }
   else if(marginal == "NB"){
     mu<-b[1]
@@ -216,7 +230,12 @@ pso_obj_fct<-function(b, y, t, marginal){
     phi<-b[5]
     alpha<-b[6]
     beta<-b[7]
-    cost <- single_gene_log_likelihood_NB(y, t, mu, k1, k2, t0, phi)
+    if(!is.null(Design_X)){
+      k_design_para<-b[8:length(b)]
+      cost <- single_gene_log_likelihood_NB(y, t, mu, k1, k2, t0, phi, Design_X, k_design_para)
+    }else{
+      cost <- single_gene_log_likelihood_NB(y, t, mu, k1, k2, t0, phi)
+    }
   }
   else if(marginal == "ZIP"){
     mu<-b[1]
@@ -225,7 +244,12 @@ pso_obj_fct<-function(b, y, t, marginal){
     t0<-b[4]
     alpha<-b[5]
     beta<-b[6]
-    cost <- single_gene_log_likelihood_ZIP(y, t, mu, k1, k2, t0, alpha, beta)
+    if(!is.null(Design_X)){
+      k_design_para<-b[7:length(b)]
+      cost <- single_gene_log_likelihood_ZIP(y, t, mu, k1, k2, t0, alpha, beta, Design_X, k_design_para)
+    }else{
+      cost <- single_gene_log_likelihood_ZIP(y, t, mu, k1, k2, t0, alpha, beta)
+    }
   }
   else if(marginal == "Poisson"){
     mu<-b[1]
@@ -234,7 +258,12 @@ pso_obj_fct<-function(b, y, t, marginal){
     t0<-b[4]
     alpha<-b[5]
     beta<-b[6]
-    cost <- single_gene_log_likelihood_Poisson(y, t, mu, k1, k2, t0)
+    if(!is.null(Design_X)){
+      k_design_para<-b[7:length(b)]
+      cost <- single_gene_log_likelihood_Poisson(y, t, mu, k1, k2, t0, Design_X, k_design_para)
+    }else{
+      cost <- single_gene_log_likelihood_Poisson(y, t, mu, k1, k2, t0)
+    }
   }
   else{ #Gaussian
     mu<-b[1]
@@ -244,21 +273,31 @@ pso_obj_fct<-function(b, y, t, marginal){
     sd<-b[5]
     alpha<-b[6]
     beta<-b[7]
-    cost <- single_gene_log_likelihood_Gaussian(y, t, mu, k1, k2, t0, sd)
+    if(!is.null(Design_X)){
+      k_design_para<-b[8:length(b)]
+      cost <- single_gene_log_likelihood_Gaussian(y, t, mu, k1, k2, t0, sd, Design_X, k_design_para)
+    }else{
+      cost <- single_gene_log_likelihood_Gaussian(y, t, mu, k1, k2, t0, sd)
+    }
   }
   cost
 }
 
-link<-function(t, mu, k1, k2, t0){
+link<-function(t, mu, k1, k2, t0, Design_X=NULL, k_design_para=NULL){
   part1<-mu * exp(- abs(k1) * (t - t0) ** 2) * (sign(k1) + (k1 == 0))
   part2<-mu * exp(- abs(k2) * (t - t0) ** 2) * (sign(k2) + (k2 == 0))
 
-  part1 * (t <= t0) + part2 * (t > t0)
+  if(!is.null(Design_X)){
+    out<-part1 * (t <= t0) + part2 * (t > t0) + Design_X %*% k_design_para
+  }else{
+    out<-part1 * (t <= t0) + part2 * (t > t0)
+  }
+  out
 }
 
 ## Gaussian
-single_gene_log_likelihood_Gaussian<-function(y, t, mu, k1, k2, t0, sd){
-  bell<-link(t, mu, k1, k2, t0)
+single_gene_log_likelihood_Gaussian<-function(y, t, mu, k1, k2, t0, sd, Design_X=NULL, k_design_para=NULL){
+  bell<-link(t, mu, k1, k2, t0, Design_X, k_design_para)
   mut<-ifelse(exp(bell)>0.1, exp(bell), 0.1)
 
   sd <- ifelse(sd>0, sd, 1e-300)
@@ -267,16 +306,16 @@ single_gene_log_likelihood_Gaussian<-function(y, t, mu, k1, k2, t0, sd){
 }
 
 ## Poisson
-single_gene_log_likelihood_Poisson<-function(y, t, mu, k1, k2, t0){
-  bell<-link(t, mu, k1, k2, t0)
+single_gene_log_likelihood_Poisson<-function(y, t, mu, k1, k2, t0, Design_X=NULL, k_design_para=NULL){
+  bell<-link(t, mu, k1, k2, t0, Design_X, k_design_para)
   mut<-ifelse(exp(bell)>0.1, exp(bell), 0.1)
 
   sum(-log(dpois(y, lambda=mut) + 1e-300))
 }
 
 ## Zero-inflated Poisson
-single_gene_log_likelihood_ZIP<-function(y, t, mu, k1, k2, t0, alpha, beta){
-  bell<-link(t, mu, k1, k2, t0)
+single_gene_log_likelihood_ZIP<-function(y, t, mu, k1, k2, t0, alpha, beta, Design_X=NULL, k_design_para=NULL){
+  bell<-link(t, mu, k1, k2, t0, Design_X, k_design_para)
   mut<-ifelse(exp(bell)>0.1, exp(bell), 0.1)
   cache<-dpois(y, lambda=mut) + 1e-300
 
@@ -287,8 +326,8 @@ single_gene_log_likelihood_ZIP<-function(y, t, mu, k1, k2, t0, alpha, beta){
 }
 
 ## Negative Binomial
-single_gene_log_likelihood_NB<-function(y, t, mu, k1, k2, t0, phi){
-  bell<-link(t, mu, k1, k2, t0)
+single_gene_log_likelihood_NB<-function(y, t, mu, k1, k2, t0, phi, Design_X=NULL, k_design_para=NULL){
+  bell<-link(t, mu, k1, k2, t0, Design_X, k_design_para)
   mut<-ifelse(exp(bell)>0.1, exp(bell), 0.1)
 
   phi <- ifelse(phi>1, phi, 1)
@@ -300,8 +339,8 @@ single_gene_log_likelihood_NB<-function(y, t, mu, k1, k2, t0, phi){
 
 
 ## Zero-inflated Negative Binomial
-single_gene_log_likelihood_ZINB<-function(y, t, mu, k1, k2, t0, phi, alpha, beta){
-  bell<-link(t, mu, k1, k2, t0)
+single_gene_log_likelihood_ZINB<-function(y, t, mu, k1, k2, t0, phi, alpha, beta, Design_X=NULL, k_design_para=NULL){
+  bell<-link(t, mu, k1, k2, t0, Design_X, k_design_para)
   mut<-ifelse(exp(bell)>0.1, exp(bell), 0.1)
 
   phi <- ifelse(phi>1, phi, 1)
@@ -373,7 +412,7 @@ Fisher_info <- function(t, para, marginal){
 
 # III. Parameters Estimation
 ##Using PSO algorithm to estimate parameters within the fitting distribution
-estimation<-function(y, t, marginal, seed, iter=50){
+estimation<-function(y, t, marginal, seed, iter=50, k_design=NULL, Design_X=NULL){
   n<-30
   if(marginal %in% c("Poisson", "ZIP") ){
     d<-6
@@ -390,7 +429,16 @@ estimation<-function(y, t, marginal, seed, iter=50){
   }else{
     stop("Enter a valid marginal distribution: [NB, ZINB, Poisson, ZIP, Gaussian]!")
   }
-  b <- runif(d)
+
+  #Add Design matrix
+  if(!is.null(k_design)){
+    d_all<-d+k_design
+    bounds<-list(c(bounds[[1]],rep(0,k_design)),
+                 c(bounds[[2]],rep(99,k_design))) #KEY！！
+  }else{
+    d_all<-d
+  }
+  b <- runif(d_all)
 
   # Set-up hyperparameters and correct initial position
   options <- list('c.p'= 1.2, 'c.g'= 0.3, 'w'= 0.9 , 'maxit'=iter,'s'=n)#,'trace'=10,'trace.stats'=T)
@@ -402,8 +450,14 @@ estimation<-function(y, t, marginal, seed, iter=50){
     b[5] <- b[5]+1
   }
 
-  gmodel<-my_psoptim(par=b, fn = pso_obj_fct, y=y, t=t, marginal=marginal,seed=seed,
-                     lower = bounds[[1]], upper = bounds[[2]], control=options)
+  #Add Design Matrix
+  if(!is.null(k_design)){
+    gmodel<-my_psoptim(par=b, fn = pso_obj_fct, y=y, t=t, marginal=marginal,Design_X=Design_X, seed=seed,
+                       lower = bounds[[1]], upper = bounds[[2]], control=options)
+  }else{
+    gmodel<-my_psoptim(par=b, fn = pso_obj_fct, y=y, t=t, marginal=marginal,Design_X=NULL,seed=seed,
+                       lower = bounds[[1]], upper = bounds[[2]], control=options)
+  }
   gbest<-gmodel$par
   gcost<-gmodel$value
 
@@ -438,7 +492,7 @@ inference <- function(t, para, marginal){
 
 ###### my_psoptim function used in estimation#######
 #### This function is modified from Claus Bendtsen's psoptim function in the pso package.
-my_psoptim <- function (par, fn, gr = NULL, ..., lower=-1, upper=1, seed,
+my_psoptim <- function (par, fn, gr = NULL, ..., lower=-1, upper=1, seed, Design_X,
                         control = list()) {
   fn1 <- function(par) fn(par, ...)/p.fnscale
   mrunif <- function(n,m,lower,upper) {
@@ -542,10 +596,15 @@ my_psoptim <- function (par, fn, gr = NULL, ..., lower=-1, upper=1, seed,
   }
   #################################################MODIFY!!!!!!!!!!!!!!!!
   set.seed(seed)
+  if(!is.null(Design_X)){
+    d_npar<-npar-ncol(Design_X)
+  }else{
+    d_npar<-npar
+  }
   X <- mrunif(npar,p.s,0,1)
   if (!any(is.na(par)) && all(par>=lower) && all(par<=upper)){ #specify initial pos
     X[1,] <- par[1]
-    X[npar,] <- 0.1
+    X[d_npar,] <- 0.1
     X[2,] <- X[2,]+5
     X[3,] <- X[3,]+5
     if(par[4]>0.5){
@@ -554,7 +613,7 @@ my_psoptim <- function (par, fn, gr = NULL, ..., lower=-1, upper=1, seed,
     else{
       X[4,] <- runif(1, min = 0, max = 0.5)
     }
-    if (npar == 7){
+    if (d_npar == 7){
       X[5,] <- X[5,]+1
     }
   }
@@ -799,3 +858,4 @@ my_psoptim <- function (par, fn, gr = NULL, ..., lower=-1, upper=1, seed,
                                                          x=stats.trace.x)))
   return(o)
 }
+
