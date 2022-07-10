@@ -455,7 +455,7 @@ estimation<-function(y, t, marginal, seed, iter=50, k_design=NULL, Design_X=NULL
     gmodel<-my_psoptim(par=b, fn = pso_obj_fct, y=y, t=t, marginal=marginal,Design_X=Design_X, seed=seed,
                        lower = bounds[[1]], upper = bounds[[2]], control=options)
   }else{
-    gmodel<-my_psoptim(par=b, fn = pso_obj_fct, y=y, t=t, marginal=marginal,Design_X=NULL,seed=seed,
+    gmodel<-my_psoptim(par=b, fn = pso_obj_fct, y=y, t=t, marginal=marginal,seed=seed,
                        lower = bounds[[1]], upper = bounds[[2]], control=options)
   }
   gbest<-gmodel$par
@@ -492,7 +492,7 @@ inference <- function(t, para, marginal){
 
 ###### my_psoptim function used in estimation#######
 #### This function is modified from Claus Bendtsen's psoptim function in the pso package.
-my_psoptim <- function (par, fn, gr = NULL, ..., lower=-1, upper=1, seed, Design_X,
+my_psoptim <- function (par, fn, gr = NULL, ..., lower=-1, upper=1, seed, Design_X=NULL,
                         control = list()) {
   fn1 <- function(par) fn(par, ...)/p.fnscale
   mrunif <- function(n,m,lower,upper) {
