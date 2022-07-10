@@ -15,7 +15,6 @@ Imports:
     cowplot,
     ggplot2,
     tidyr,
-    SingleCellExperiment,
     SummarizedExperiment
 Depends: 
     R (>= 3.5.0)

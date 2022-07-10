@@ -5,7 +5,6 @@
 \title{Estimate Parameters in Single-cell Gene Expression Generalized Trend Model}
 \usage{
 scGTM(
-  gene_index = 100,
   t,
   y1,
   gene_name = NULL,
@@ -17,9 +16,6 @@ scGTM(
 )
 }
 \arguments{
-\item{gene_index}{A single integer vector, indicates which gene to estimate in the model,start from 1,
-default=100}
-
 \item{t}{A numeric vector of the input normalized pseudotime data of a given gene,
 length equals the numbers of cells}
 
@@ -55,19 +51,19 @@ This function estimates corresponding parameters and confidence intervals in the
 y1<-floor(runif(100, min = 0, max = 20))
 t<-runif(100, min = 0, max = 1)
 marginal<-"ZIP"
-scGTM(gene_index=1, t=t, y1=y1, marginal=marginal)
+scGTM(t=t, y1=y1, marginal=marginal)
 
 data("df")
 t<-df$Time
 marginal<-"ZIP"
 y1<-df$Gene11
-scGTM(gene_index=11, t=t, y1=y1, marginal=marginal)
+scGTM(t=t, y1=y1, marginal=marginal)
 
 data("df")
 t<-df$Time
 marginal<-"Gaussian"
 y1<-df$Gene1
-scGTM(gene_index=1, t=t, y1=y1, marginal=marginal)
+scGTM(t=t, y1=y1, marginal=marginal)
 
 }
 \author{

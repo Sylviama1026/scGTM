@@ -3,8 +3,6 @@
 #' The model fits a gene's expression counts and its normalized pseudotime into one of the four marginal distributions.
 #' This function estimates corresponding parameters and confidence intervals in the corresponding marginal distributions.
 #'
-#' @param gene_index A single integer vector, indicates which gene to estimate in the model,start from 1,
-#' default=100
 #' @param t A numeric vector of the input normalized pseudotime data of a given gene,
 #' length equals the numbers of cells
 #' @param y1 A vector of integers, representing the input expression counts of a given gene,
@@ -31,23 +29,23 @@
 #' y1<-floor(runif(100, min = 0, max = 20))
 #' t<-runif(100, min = 0, max = 1)
 #' marginal<-"ZIP"
-#' scGTM(gene_index=1, t=t, y1=y1, marginal=marginal)
+#' scGTM(t=t, y1=y1, marginal=marginal)
 #'
 #' data("df")
 #' t<-df$Time
 #' marginal<-"ZIP"
 #' y1<-df$Gene11
-#' scGTM(gene_index=11, t=t, y1=y1, marginal=marginal)
+#' scGTM(t=t, y1=y1, marginal=marginal)
 #'
 #' data("df")
 #' t<-df$Time
 #' marginal<-"Gaussian"
 #' y1<-df$Gene1
-#' scGTM(gene_index=1, t=t, y1=y1, marginal=marginal)
+#' scGTM(t=t, y1=y1, marginal=marginal)
 #'
 #' @author Shiyu Ma, Lehan Zou
 #'
-scGTM<-function(gene_index = 100, t, y1, gene_name=NULL, marginal="ZIP", iter_num=50, seed=123,
+scGTM<-function(t, y1, gene_name=NULL, marginal="ZIP", iter_num=50, seed=123,
                 k_design=NULL, Design_X=NULL){
   #This function automatically determines Hill- or Valley- trend
   ## Flag calculation
@@ -55,7 +53,7 @@ scGTM<-function(gene_index = 100, t, y1, gene_name=NULL, marginal="ZIP", iter_nu
   cat("The need of transformation: " , flag)  #flag=False=hill
 
   ## ESTIMATION
-  cat("\nWe are estimating gene", gene_index,"with marginal",marginal,".\n")
+  cat("\nWe are estimating gene", gene_name,"with marginal",marginal,".\n")
 
   #transformation if valley
   if(flag){

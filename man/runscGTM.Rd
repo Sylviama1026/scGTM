@@ -5,10 +5,9 @@
 \title{Estimate Parameters in Single-cell Gene Expression Generalized Trend Model on a List of Genes}
 \usage{
 runscGTM(
-  gene.vec,
   t,
-  y1,
-  gene_name = NULL,
+  y,
+  sce = NULL,
   marginal = "ZIP",
   iter_num = 50,
   seed = 123,
@@ -16,15 +15,15 @@ runscGTM(
 )
 }
 \arguments{
-\item{gene.vec}{A vector of integers, indicating targeted genes' index in the data.}
-
 \item{t}{A numeric vector of the input normalized pseudotime data of a given gene,
-length equals the numbers of cells}
+length equals the numbers of cells(If sce is not null, t is a string of gene names to use in the model)}
 
-\item{y1}{A vector of integers, representing the input expression counts of corresponding lists of genes,
-number of rows equals the numbers of cells, number of columns equals the numbers of targeted genes}
+\item{y}{A tibble, representing the input expression counts of corresponding lists of genes,
+number of rows equals the numbers of cells, number of columns equals the numbers of targeted genes,
+(If sce is not null, y is a SingleCellExperiment object with counts data)}
 
-\item{gene_name}{A vector of strings, indicates the genes' name used in the model}
+\item{sce}{A character vector, indicates the assay name applied to the SingleCellExperiment object
+default=NULL}
 
 \item{marginal}{A string of the distribution name. One of \code{Poisson}, \code{ZIP}, \code{NB}, \code{ZINB} and \code{Gaussian}.
 default=\code{ZIP}}
@@ -45,7 +44,12 @@ Estimate Parameters in Single-cell Gene Expression Generalized Trend Model on a 
 }
 \examples{
 data("df")
-res <- scGTM::runscGTM(gene.vec=1:3, t=df$Time, y1=df[,3:5],gene_name=colnames(df[,3:5]))
+res <- scGTM::runscGTM(t=df$Time, y=df[,3:5])
+
+data("sce")
+t_sce<-rownames(sce)
+res_sce <- runscGTM(t=t_sce, y=sce, sce="logcounts", marginal="Gaussian")
+
 }
 \author{
 Shiyu Ma
