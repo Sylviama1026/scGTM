@@ -1,7 +1,8 @@
 #' Estimate Parameters in Single-cell Gene Expression Generalized Trend Model on a List of Genes
 #'
 #' @param t A numeric vector of the input normalized pseudotime data of a given gene,
-#' length equals the numbers of cells(If sce is not null, t is a string of gene names to use in the model)
+#' length equals the numbers of cells
+#' (If sce is not null, t is a string of gene names to use in the model)
 #' @param y A tibble, representing the input expression counts of corresponding lists of genes,
 #' number of rows equals the numbers of cells, number of columns equals the numbers of targeted genes,
 #' (If sce is not null, y is a SingleCellExperiment object with counts data)
