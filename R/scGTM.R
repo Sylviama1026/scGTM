@@ -86,40 +86,48 @@ scGTM<-function(t, y1, gene_name=NULL, marginal="ZIP", iter_num=50, seed=123,
     k2 <- gbest[3]; t0 <- gbest[4]; phi <- NA; sd<-NA
     alpha <- gbest[5]; beta <- gbest[6]
 
-    cat("Best parameter estimation:\n mu , k1 , k2 , t0 , p:\n",round(gbest, 2))
+    cat("Best parameter estimation:\n mu , k1 , k2 , t0 , p:\n",round(gbest, 2),"\n")
   }else if(marginal == "ZINB"){ #use 7 para,
     gbest[6] <- ifelse(gbest[6]>1,gbest[6], 1) #alpha>1
     mu <- gbest[1]; k1 <- gbest[2];k2 <- gbest[3]
     t0 <- gbest[4]; phi <- gbest[5]; sd<-NA
     alpha <- gbest[6]; beta <- gbest[7]
 
-    cat("Best parameter estimation:\n mu , k1 , k2 , t0 , phi, p:\n",round(gbest, 2))
+    cat("Best parameter estimation:\n mu , k1 , k2 , t0 , phi, p:\n",round(gbest, 2),"\n")
   }else if(marginal == "Poisson"){ #use 4 para
     mu <- gbest[1]; k1 <- gbest[2];k2 <- gbest[3]
     t0 <- gbest[4]; phi <- NA; sd<-NA; alpha<-NA; beta<-NA
 
-    cat("Best parameter estimation:\n mu , k1 , k2 , t0:\n",round(gbest[-length(gbest)], 2))
+    cat("Best parameter estimation:\n mu , k1 , k2 , t0:\n",round(gbest[-length(gbest)], 2),"\n")
   }else if(marginal == "NB"){ #use 5 para
     gbest[6] <- ifelse(gbest[6]>1,gbest[6], 1) #alpha>1
     mu <- gbest[1]; k1 <- gbest[2];k2 <- gbest[3]
     t0 <- gbest[4]; phi <- gbest[5]; sd<-NA; alpha<-NA; beta<-NA
 
-    cat("Best parameter estimation:\n mu , k1 , k2 , t0, phi:\n",round(gbest[-length(gbest)], 2))
+    cat("Best parameter estimation:\n mu , k1 , k2 , t0, phi:\n",round(gbest[-length(gbest)], 2),"\n")
   }else{ #Gaussian, use 5 para
     mu <- gbest[1]; k1 <- gbest[2];k2 <- gbest[3]
     t0 <- gbest[4]; phi<-NA; sd <- gbest[5]; alpha<-NA; beta<-NA
 
-    cat("Best parameter estimation:\n mu , k1 , k2, t0, sd:\n",round(gbest[-length(gbest)], 2))
+    cat("Best parameter estimation:\n mu , k1 , k2, t0, sd:\n",round(gbest[-length(gbest)], 2),"\n")
   }
 
   ## FISHER INFORMATION
-  fisher<-inference(t, gbest, marginal)[[1]] #4x4 matrix
-  var<-inference(t, gbest, marginal)[[2]] #4x4 matrix
-  t0_lower<-inference(t, gbest, marginal)[[3]]
-  t0_upper<-inference(t, gbest, marginal)[[4]]
+  checker<-inference(t, gbest, marginal)[[4]]
+  if(is.na(checker)){
+    var<-NA
+    t0_lower<-NA;t0_upper<-NA;t0_std<-NA
+    k1_lower<-NA;k1_upper<-NA;k1_std<-NA;k2_lower<-NA;k2_upper<-NA;k2_std<-NA
+    mu_lower<-NA;mu_upper<-NA;mu_std<-NA
+    Fisher <- 'Singular'
+  }else{
+    var<-inference(t, gbest, marginal)[[2]] #4x4 matrix
+    t0_lower<-inference(t, gbest, marginal)[[3]]
+    t0_upper<-inference(t, gbest, marginal)[[4]]
 
-  cat("\nThe 95% confidence interval of the activation time t0:\n" ,
-      "t0 : (" , t0_lower, ", " , t0_upper , ")\n")
+    cat("The 95% confidence interval of the activation time t0:\n" ,
+        "t0 : (" , t0_lower, ", " , t0_upper , ")\n")
+  }
   if(length(dim(var))>1){
     t0_std <- sqrt(var[1,1])
     k1_lower <- round(gbest[2] - 1.96 * sqrt(var[2, 2]), 3)
@@ -137,29 +145,6 @@ scGTM<-function(t, y1, gene_name=NULL, marginal="ZIP", iter_num=50, seed=123,
     k2_std <- ifelse(is.na(k2_lower),NA,sqrt(var[3, 3]))
     mu_std <- sqrt(var[4, 4])
     Fisher <- 'Non-singular'
-  }else{
-    var <- fisher
-    var[1, 1] <- 1 / (var[1, 1] + 1e-100)
-    var[2, 2] <- 1 / (var[2, 2] + 1e-100)
-    var[3, 3] <- 1 / (var[3, 3] + 1e-100)
-    var[4, 4] <- 1 / (var[4, 4] + 1e-100)
-
-    t0_std <- sqrt(var[1,1])
-    k1_lower <- round(gbest[2] - 1.96 * sqrt(var[2, 2]), 3)
-    k1_upper <- round(gbest[2] + 1.96 * sqrt(var[2, 2]), 3)
-    k2_lower <- round(gbest[3] - 1.96 * sqrt(var[3, 3]), 3)
-    k2_upper <- round(gbest[3] + 1.96 * sqrt(var[3, 3]), 3)
-    mu_lower <- round(gbest[1] - 1.96 * sqrt(var[4, 4]), 3)
-    mu_upper <- round(gbest[1] + 1.96 * sqrt(var[4, 4]), 3)
-
-    cat("\nThe 95% CIs for activation strength k1 and k2:\n" ,
-        "k1 : (" , k1_lower , ", " , k1_upper , ")\n",
-        "k2 : (" , k2_lower , ", " , k2_upper , ")\n")
-
-    k1_std <- sqrt(var[2, 2])
-    k2_std <- ifelse(is.na(k2_lower),NA,sqrt(var[3, 3]))
-    mu_std <- sqrt(var[4, 4])
-    Fisher <- 'Singular'
   }
   Transform <- as.integer(flag)
 
@@ -199,7 +184,6 @@ scGTM<-function(t, y1, gene_name=NULL, marginal="ZIP", iter_num=50, seed=123,
        Transform = Transform,
        Design_para = Design_para)
 }
-
 
 # I. Objective_function
 ##Compute log_likelihood cost function of one gene based on given parameters
@@ -468,23 +452,18 @@ estimation<-function(y, t, marginal, seed, iter=50, k_design=NULL, Design_X=NULL
 # IV. Parameters Inference
 ##Compute estimated Fisher information matrix and covariance matrix for estimated parameters
 inference <- function(t, para, marginal){
+  lower<-NA;upper<-NA
   fisher <- Fisher_info(t, para, marginal)
   tryCatch(
     expr = {
       cov <- solve(fisher)
       lower <- round(para[4] - 1.96 * sqrt(cov[1, 1]), 3)
-      upper <- round(para[4] + 1.96 * sqrt(cov[1, 1]), 3)
+      upper <-  round(para[4] + 1.96 * sqrt(cov[1, 1]), 3)
     }, error = function(e){
-      print("The Fisher information matrix is singular: estimated t0 is either less than 0 or greater than 1.\n",
-            "Calculating the sub-Fisher information matrix of t0 instead.\n")
-      cov <- 1 / fisher[1, 1]
-      lower <- round(para[4] - 1.96 * sqrt(cov), 3)
-      upper <- round(para[4] + 1.96 * sqrt(cov), 3)
-
+      cat("\nThe Fisher information matrix is singular: estimated t0 is either less than 0 or greater than 1.\n")
     })
   list(fisher, cov, lower, upper)
 }
-
 
 
 

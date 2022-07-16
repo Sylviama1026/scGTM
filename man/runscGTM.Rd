@@ -16,7 +16,8 @@ runscGTM(
 }
 \arguments{
 \item{t}{A numeric vector of the input normalized pseudotime data of a given gene,
-length equals the numbers of cells(If sce is not null, t is a string of gene names to use in the model)}
+length equals the numbers of cells
+(If sce is not null, t is a string of gene names to use in the model)}
 
 \item{y}{A tibble, representing the input expression counts of corresponding lists of genes,
 number of rows equals the numbers of cells, number of columns equals the numbers of targeted genes,
