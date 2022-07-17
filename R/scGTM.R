@@ -375,12 +375,17 @@ Fisher_info <- function(t, para, marginal){
   k2_deri <- (t - t0_fit) ** 2 * log_mut_fit * (t > t0_fit)  # * (1 + 1/mut)
   mu_deri <- log_mut_fit / mu_fit  # * (1 + 1/mut)
 
-  if (marginal == "ZIP" | marginal == "Poisson" | marginal == "Gaussian"){
+  if (marginal == "ZIP" | marginal == "Poisson"){
     t0_deri <- t0_deri*(1 + 1 / mut)
     k1_deri <- k1_deri*(1 + 1 / mut)
     k2_deri <- k2_deri*(1 + 1 / mut)
     mu_deri <- mu_deri*(1 + 1 / mut)
-  }else{
+  }else if(marginal == "Gaussian"){
+    t0_deri <- t0_deri*(1 + 1 / sd_fit^2)
+    k1_deri <- k1_deri*(1 + 1 / sd_fit^2)
+    k2_deri <- k2_deri*(1 + 1 / sd_fit^2)
+    mu_deri <- mu_deri*(1 + 1 / sd_fit^2)
+  }else{ #NB and ZINB
     t0_deri <- t0_deri*(phi_fit * (mut + 1) / (mut + phi_fit))
     k1_deri <- k1_deri*(phi_fit * (mut + 1) / (mut + phi_fit))
     k2_deri <- k2_deri*(phi_fit * (mut + 1) / (mut + phi_fit))
