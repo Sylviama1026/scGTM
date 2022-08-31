@@ -1,0 +1,2 @@
+load("/Users/zouzou/Desktop/scGTM/gyrus_sce.rds")
+load("/Users/zouzou/Desktop/scGTM/MTAB_sce.rds")
