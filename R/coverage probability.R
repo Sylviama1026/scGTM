@@ -6,7 +6,7 @@ mut<-ifelse(exp(bell)>0.1, exp(bell), 0.1)
 k1_gau <- NULL
 k2_gau <- NULL
 t0_gau <- NULL
-for (i in 1:100){
+for (i in 1:1000){
   sim_gau <- rnorm(500, mean = mut, sd = 2) #Gaussian
   sim_gau[sim_gau < 0] <- 0
 
@@ -42,7 +42,7 @@ mut<-ifelse(exp(bell)>0.1, exp(bell), 0.1)
 k1_pois <- NULL
 k2_pois <- NULL
 t0_pois <- NULL
-for(i in 1:100){
+for(i in 1:1000){
   sim_pois <- rpois(500, lambda = mut)
 
   result_pois <- scGTM(t=df$Time, y1 = sim_pois, marginal="Poisson", iter = 200, seed = i)
@@ -75,7 +75,7 @@ mut<-ifelse(exp(bell)>0.1, exp(bell), 0.1)
 k1_nb <- NULL
 k2_nb <- NULL
 t0_nb <- NULL
-for(i in 1:100){
+for(i in 1:1000){
   sim_nb <- rnbinom(500, 1.5, 1 - mut/(mut+1.5))
 
   result_nb <- scGTM(t=df$Time, y1 = sim_nb, marginal='NB', iter = 200, seed = i)
@@ -101,38 +101,6 @@ sum(k2_nb)/length(k2_nb)
 sum(t0_nb)/length(t0_nb)
 
 
-#ZINB
-library("stats")
-bell<-link(t = df$Time, mu = 2.23, k1 = 8.97, k2 = 3.56, t0 = 0.45)
-mut<-ifelse(exp(bell)>0.1, exp(bell), 0.1)
-set.seed(123)
-sim_nb <- rzinbinom(500, 1.5, 1.5)
-
-k1_nb <- NULL
-k2_nb <- NULL
-t0_nb <- NULL
-for(i in 1:20){
-  result_nb <- scGTM(t=df$Time, y1 = sim_nb, marginal=marginal, iter = 200, seed = i)
-  if(8.97 > result_nb$k1_lower && 8.97 < result_nb$k1_upper){
-    k1_nb <- c(k1_nb, T)
-  }else{
-    k1_nb <- c(k1_nb, F)
-  }
-  if(3.56 > result_nb$k2_lower && 3.56 < result_nb$k2_upper){
-    k2_nb <- c(k2_nb, T)
-  }else{
-    k2_nb <- c(k2_nb, F)
-  }
-  if(0.45 > result_nb$t0_lower && 0.45 < result_nb$t0_upper){
-    t0_nb <- c(t0_nb, T)
-  }else{
-    t0_nb <- c(t0_nb, F)
-  }
-
-}
-sum(k1_nb)/length(k1_nb)
-sum(k2_nb)/length(k2_nb)
-sum(t0_nb)/length(t0_nb)
 
 
 
