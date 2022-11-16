@@ -1,0 +1,164 @@
+---
+title: "vignettes"
+author: Lehan Zou
+date: 
+output:   rmarkdown::html_vignette:
+    css: mystyles.css
+
+title: "Vignette Title"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# Real Data Analysis Example 1
+## Introduction
+In this example, we will show scGTM recapitulates gene expression trends of endometrial transformation in the human menstrual cycle.This is originally from the second example the author showed in part 3 of the scGTM paper.
+```{r}
+library(tidyverse)
+library(SingleCellExperiment)
+library(ComplexHeatmap)
+library(viridis)
+library(useful)
+library(RColorBrewer)
+library(scales)
+library(DESeq2)
+library(scGTM)
+```
+
+## Read the Reference Data
+This WANG dataset contains 20 exemplar genes that exhibit temporal expression trends in unciliated epithelia cells in the human menstrual cycle. 
+```{r}
+wang_sce <- readRDS("wang_sce.rds")
+#print(wang_sce)
+```
+
+```{r}
+gene_vec <- c("PLAU", "MMP7", "THBS1", "CADM1", "NPAS3", "ATP1A1", "ANK3", "ALPL", "TRAK1", "SCGB1D2", "MT1F", "MT1X", "MT1E", "MT1G", "CXCL14", "MAOA", "DPP4", "NUPR1", "GPX3", "PAEP")
+```
+
+```{r}
+GSE111976_summary_C1_donor_phase <- read_csv("GSE111976_summary_C1_donor_phase.csv")
+```
+
+```{r}
+colData(wang_sce)$phase_canonical <- sapply(colData(wang_sce)$donor, function(x) {
+  res <- GSE111976_summary_C1_donor_phase %>% dplyr::filter(donor == x) %>% dplyr::select(phase_canonical) %>% simplify2array()
+  res
+})
+
+colData(wang_sce)$phase_canonical <- factor(colData(wang_sce)$phase_canonical, levels = c("menstrual", "proliferative_early","proliferative_late", "secretory_early","secretory_mid", "secretory_late"))
+```
+
+```{r}
+wang_sub <- wang_sce[gene_vec, ]
+cell_order <- colData(wang_sub) %>%as_tibble(rownames = "cell") %>% dplyr::arrange(pseudotime)%>% .$cell
+pseudotime <- colData(wang_sub) %>%as_tibble(rownames = "cell") %>% dplyr::arrange(pseudotime)%>% .$pseudotime
+wang_sub <- wang_sub[gene_vec, cell_order]
+```
+
+```{r}
+mat <- log1p(round((assay(wang_sub, "cpm"))))
+cell_order <- colData(wang_sub) %>% as_tibble(rownames = "cell") %>% dplyr::arrange(pseudotime)%>% .$cell
+pseudotime <- colData(wang_sub) %>% as_tibble(rownames = "cell") %>% dplyr::arrange(pseudotime)%>% .$pseudotime
+mat <- mat[, cell_order]
+
+mat <- t(apply(mat, 1, rescale))
+```
+
+Find color which is appropriate
+
+```{r, fig.height=5, fig.width=10}
+ha = HeatmapAnnotation(Phase = colData(wang_sub)$phase_canonical, col = list(Phase = c("menstrual" = "#A50026", "proliferative_early" = "#D73027","proliferative_late" = "#FEE090", "secretory_early" = "#ABD9E9","secretory_mid" = "#4575B4", "secretory_late" = "#313695")))
+p1 <- ComplexHeatmap::Heatmap(mat, cluster_rows = FALSE, cluster_columns = FALSE, show_column_names = FALSE, col=viridis(50), top_annotation = ha, name = "heatmap1", show_heatmap_legend = FALSE, column_title = "Original Data")
+```
+
+
+```{r}
+dat <- data.frame(Index = colnames(mat), pseudotime = colData(wang_sub)$pseudotime)
+
+dat <- cbind(dat, round(t(assay(wang_sub, "cpm"))))
+
+#write_csv(x = dat, "~/scKGAM/data/csv/wang.csv")
+```
+
+### Import parameter csv
+```{r}
+
+Poisson_para<-runscGTM(t=rownames(wang_sub), y=wang_sub, sce="counts", marginal="Poisson",hill_only = TRUE)
+
+Poisson_para$maxy<-apply(t(assay(wang_sub,'counts')),2,max)
+
+Poisson_para <- Poisson_para[,c('gene','mu','k1','k2','t0','Transform','maxy')]
+
+```
+
+## Gene curve function
+
+```{r}
+gene_curve <- function(t, mu, k1, k2, t0, flag, maxy, hill_only) {
+  
+  link<-function(t, mu, k1, k2, t0){
+  part1<-mu * exp(- abs(k1) * (t - t0) ** 2) * (sign(k1) + (k1 == 0))
+  part2<-mu * exp(- abs(k2) * (t - t0) ** 2) * (sign(k2) + (k2 == 0))
+  out<-part1 * (t <= t0) + part2 * (t > t0)
+  out
+  }
+  
+  log_mut_fit <- link(sort(t), mu, k1, k2, t0)
+
+  if(hill_only == FALSE){
+  #transformation if valley
+  if (flag){
+    log_mut_fit = -log_mut_fit + log(maxy + 1)
+  }}
+  log_mut_fit
+}
+
+```
+
+## Poisson
+
+```{r}
+res <- apply(Poisson_para, 1, function(x, t_vec) {
+  suppressWarnings(x <- as.numeric(x))
+  sapply(t_vec, function(t) {
+    v <- gene_curve(t = t, mu = x[2], k1 = abs(x[3]), k2 = abs(x[4]), 
+                    t0 = x[5], flag=x[6], maxy=x[7], hill_only = TRUE)
+    v})
+  }, t_vec = pseudotime) %>% t()
+```
+
+```{r}
+rownames(res) <- rownames(mat)
+#rownames(res) <- Poisson_para$t0 %>% round(2)
+colnames(res) <- colnames(mat)
+
+res <- t(apply(res, 1, rescale))
+```
+
+```{r, fig.height=5, fig.width=10}
+p2 <- ComplexHeatmap::Heatmap(res, cluster_rows = FALSE, cluster_columns = FALSE, show_column_names = FALSE, col=viridis(50), top_annotation = ha, name = "Normalized logCPM", show_heatmap_legend = TRUE, column_title = "Fitted scGTMs")
+```
+
+Pseudotime quantile
+```{r}
+Fn <- ecdf(pseudotime)
+pos <- Fn(Poisson_para$t0)
+#pos <- apply(res, 1, which.max)/dim(res)[2]
+```
+
+## Visualization
+```{r, fig.width=12, fig.height=4}
+ht_list <- p1 + p2
+draw(ht_list, merge_legend = TRUE, ht_gap = unit(0.2, "in"), auto_adjust = FALSE)
+decorate_heatmap_body("Normalized logCPM", {
+    #grid.text("outlier", 1.5/10, 2.5/4, default.units = "npc")
+  for(i in 1:20) {
+    grid.lines(c(pos[21-i], pos[21-i]), c((i-1)/20, i/20), gp = gpar(lty = 1, lwd = 2, col = "red"))
+  } 
+}, slice = 1)
+```
+The original study ordered the 20 genes by the estimated pseudotime at which they achieved the maximum expression. The second plot shows that the data agreed well with the menstrual cycle phases using scGTM, with the red segments highlighting the estimated change times $t_0$.
