@@ -1,20 +1,30 @@
 ---
-title: "vignettes"
-author: Lehan Zou
-date: 
-output:   rmarkdown::html_vignette:
-    css: mystyles.css
+title: "Real Data Analysis Example 2"
+author: 
+  - name: Dongyuan Song
+    affiliation:
+    - Bioinformatics IDP, University of California, Los Angeles
+    email: dongyuansong@ucla.edu
+  - name: Lehan Zou
+    affiliation:
+    - Dertment of Statistics, University of California, Los Angeles
+    email: lehanz77@g.ucla.edu
+  - name: Shiyu Ma
+    affiliation:
+    - Department of Statistics, University of California, Los Angeles
+    email: sylviama1026@g.ucla.edu
+output:   
+  rmarkdown::html_vignette
 
-title: "Vignette Title"
-output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteIndexEntry{Real Data Analysis Example 2}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 # Real Data Analysis Example 2
-## scGTM identifies informative gene expression trends after immune cell stimulation.
+scGTM identifies informative gene expression trends after immune cell stimulation.
+
 As in the second real data example, we use the scGTM to categorize gene expression trends in mouse dendritic cells(DCs) after simulation with lipopolysaccharide (LPS). 
 
 ```{r}
@@ -37,9 +47,6 @@ theme_set(theme_bw())
 
 ```{r}
 LPS_sce <- read_csv("LPS data.csv")
-#poissonpara <- scGTM::runscGTM(t=LPS_sce$pseudotime, y=LPS_sce[,-c(1,2)],)
-#poissonpara <- poissonpara %>%dplyr::rename(gene_index = gene)
-#write.csv(poissonpara, "Poisson_para3.csv")
 
 Poisson_para <- read_csv("Poisson_para.csv")
 ```
@@ -75,8 +82,7 @@ Poisson_loglik <- apply(LPS_counts, 1, function(gene) {
 ### Select significant genes
 
 ```{r}
-Poisson_new <- Poisson_para %>% dplyr::mutate(nzp = rowMeans(LPS_counts!=0))%>% dplyr::mutate(Poisson_para, nllik = Poisson_loglik) %>%# dplyr::select(c("gene_index", "negative_log_likelihood", "nllik", "Transform")) %>%
- dplyr::mutate(llk_diff = 2*(nllik - negative_log_likelihood)) %>% dplyr::arrange(desc(llk_diff)) %>% dplyr::mutate(pvalue = pchisq(llk_diff, 3, lower.tail = FALSE)) %>% dplyr::mutate(adj_pvalue = p.adjust(pvalue, "BH")) %>% dplyr::filter(adj_pvalue < 0.01)#%>% dplyr::group_by(Transform) %>% dplyr::summarise(n())
+Poisson_new <- Poisson_para %>% dplyr::mutate(nzp = rowMeans(LPS_counts!=0))%>% dplyr::mutate(Poisson_para, nllik = Poisson_loglik) %>% dplyr::mutate(llk_diff = 2*(nllik - negative_log_likelihood)) %>% dplyr::arrange(desc(llk_diff)) %>% dplyr::mutate(pvalue = pchisq(llk_diff, 3, lower.tail = FALSE)) %>% dplyr::mutate(adj_pvalue = p.adjust(pvalue, "BH")) %>% dplyr::filter(adj_pvalue < 0.01)
 Poisson_new
 ```
 
@@ -97,7 +103,7 @@ Poisson_new <- Poisson_new %>% mutate(gene_index = sapply(gene_index, function(x
   }
   gene <- gsub("rik", "Rik", gene)
   gene
-})) #%>% unnest(gene)
+})) 
 
 gene_counts <- gene_counts %>% mutate(gene = sapply(gene, function(x) {
   gene <- str_split(x, "-")[[1]]
@@ -116,7 +122,6 @@ gene_counts <- gene_counts %>% mutate(gene = sapply(gene, function(x) {
 ```{r}
 Poisson_mat <-Poisson_new %>% dplyr::select(-c("...1", "gene_index", "negative_log_likelihood", "phi", "pvalue", "Fisher", "k1_std","k2_std","mu_std")) %>% as.matrix()
 
-#rownames(Poisson_mat) <- Poisson_para$gene_index
 ```
 
 ### Plot curve
@@ -131,7 +136,6 @@ gene_curve <- function(t, mu, k1, k2, t0) {
 ```{r}
 gene_predict <- function(gene, pseudotime) {
   i = Poisson_new %>% dplyr::filter(gene_index == gene) %>% as.vector()
-  #print(i)
   res <- gene_curve(t = pseudotime, mu = as.numeric(i[4]), k1 = abs(as.numeric(i[5])), k2 = abs(as.numeric(i[6])), t0 = as.numeric(i[7]))
   res
 }
@@ -141,8 +145,6 @@ gene_predict <- function(gene, pseudotime) {
 gene_predict2 <- function(gene_use, pseudotime) {
   i = Poisson_new %>% dplyr::filter(gene_index == gene_use) %>% as.vector()
   gene_max <- gene_counts %>% group_by(gene) %>% dplyr::summarise(max_value = max(`log(count+1)`)) %>% dplyr::filter(gene == gene_use) %>% .$max_value
-  #print(gene_max)
-  #print(i)
   res <- gene_curve(t = pseudotime, mu = as.numeric(i[4]), k1 = abs(as.numeric(i[5])), k2 = abs(as.numeric(i[6])), t0 = as.numeric(i[7]))
   gene_max - res
 }
@@ -152,9 +154,6 @@ gene_predict2 <- function(gene_use, pseudotime) {
 ### Add scKGAM prediction
 ```{r}
 gene_counts <- gene_counts %>% dplyr::filter(gene %in% Poisson_new$gene_index)
-```·
-```{r}
-#gene_counts <- gene_counts %>% dplyr::mutate(prediction = mapply(gene = gene, pseudotime  = pseudotime, FUN = gene_predict))
 ```
 
 
@@ -163,15 +162,15 @@ we use the scGTM’s confidence levels of the three parameters $t_0$ , $k_1$ , a
 2) hill-shaped and mostly decreasing genes
 3) valley-shaped genes
 ### Plot some genes
-```{r, fig.height=5}
+```{r, fig.height=8}
 gene_vec1 <- Poisson_new %>% dplyr::arrange(desc(llk_diff)) %>% dplyr::filter(Transform == 0) %>% dplyr::filter(t0_lower > 0.6 & k1_lower > 1)%>% dplyr::arrange(desc(nzp))
 
 gene_vec <- gene_vec1$gene_index[1:5]
-p1 <- gene_counts %>% dplyr::filter(gene %in% gene_vec) %>% dplyr::mutate(prediction = mapply(gene = gene, pseudotime  = pseudotime, FUN = gene_predict)) %>% dplyr::mutate(gene = factor(gene, levels = gene_vec)) %>% ggplot(aes(x = pseudotime, y = `log(count+1)`)) +geom_point(size = 1, alpha = 0.3) + geom_line(aes(y = prediction), color = "blue") + facet_wrap(~gene, scales = "free_y", nrow = 1) +theme(aspect.ratio = 1) + ggtitle("Hill-shaped Genes (Mostly Increasing)")#+ggtitle("t0_lower > 0.5 & k1_lower > 1, Transform = FALSE")
+p1 <- gene_counts %>% dplyr::filter(gene %in% gene_vec) %>% dplyr::mutate(prediction = mapply(gene = gene, pseudotime  = pseudotime, FUN = gene_predict)) %>% dplyr::mutate(gene = factor(gene, levels = gene_vec)) %>% ggplot(aes(x = pseudotime, y = `log(count+1)`)) +geom_point(size = 1, alpha = 0.3) + geom_line(aes(y = prediction), color = "blue") + facet_wrap(~gene, scales = "free_y", nrow = 1) +theme(aspect.ratio = 1) + ggtitle("Hill-shaped Genes (Mostly Increasing)")
 p1
 ```
 
-```{r, fig.height=5}
+```{r, fig.height=8}
 gene_vec2 <- Poisson_new %>% dplyr::arrange(desc(llk_diff)) %>% dplyr::filter(Transform == 0) %>% dplyr::filter(t0_upper < 0.4 & k2_lower > 1) %>% dplyr::arrange(desc(nzp))
 
 gene_vec <- gene_vec2$gene_index[1:5]
@@ -179,7 +178,7 @@ p2 <- gene_counts %>% dplyr::filter(gene %in% gene_vec) %>% dplyr::mutate(predic
 p2
 ```
 
-```{r, fig.height=5}
+```{r, fig.height=8}
 gene_vec3 <- Poisson_new %>% dplyr::arrange(desc(llk_diff)) %>% dplyr::filter(Transform == 1) %>% dplyr::filter(k1_lower > 1 & k2_lower > 1)%>% dplyr::arrange(desc(nzp))
 
 gene_vec<- gene_vec3$gene_index[1:5]
@@ -192,7 +191,6 @@ p3
 gcSample <- list(`Mostly Increasing` = gene_vec1$gene_index, `Mostly Decreasing` = gene_vec2$gene_index, `Valley-shaped` = gene_vec3$gene_index)
 
 ck <- compareCluster(geneCluster = gcSample, fun = enrichGO,
-                     #universe = unique(gene_counts$gene),
                       OrgDb         = org.Mm.eg.db,
                       ont           = "BP",
                 pAdjustMethod = "BH",
@@ -203,21 +201,20 @@ ck <- compareCluster(geneCluster = gcSample, fun = enrichGO,
 
 ck2 <- clusterProfiler::simplify(ck, cutoff = 0.6)
 p_go <- clusterProfiler::dotplot(ck2, showCategory = 10, font.size = 12, label_format = 30)
+```
+
+```{r, fig.width=10,fig.height = 10}
 p_go
 ```
 
-```{r, fig.width=10}
-p_go
-```
 
-
-```{r, fig.width=12}
+```{r, fig.width=12, fig.height= 12}
 p_gene_trend <- ggpubr::ggarrange(p1, p2, p3, ncol = 1, align = "hv")
 p_gene_trend
 ```
 
-```{r, fig.width=8, fig.height=10}
-p_LPS <- ggpubr::ggarrange(p_go, p_gene_trend, ncol = 1, heights = c(3, 5), align = "h", labels = c("a", "b"), font.label = list(size = 20, face = "bold", color ="black"))
+```{r, fig.width=12, fig.height=20}
+p_LPS <- ggpubr::ggarrange(p_go, p_gene_trend, ncol = 1, heights = c(8, 5), align = "h", labels = c("a", "b"), font.label = list(size = 20, face = "bold", color ="black"))
 p_LPS
 ```
 

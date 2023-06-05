@@ -1,14 +1,25 @@
 ---
-title: "vignettes"
-author: Lehan Zou
-date: 
-output:   rmarkdown::html_vignette:
-    css: mystyles.css
+title: "Real Data Analysis Example 1"
+author: 
+  - name: Dongyuan Song
+    affiliation:
+    - Bioinformatics IDP, University of California, Los Angeles
+    email: dongyuansong@ucla.edu
+  - name: Lehan Zou
+    affiliation:
+    - Dertment of Statistics, University of California, Los Angeles
+    email: lehanz77@g.ucla.edu
+  - name: Shiyu Ma
+    affiliation:
+    - Department of Statistics, University of California, Los Angeles
+    email: sylviama1026@g.ucla.edu
 
-title: "Vignette Title"
-output: rmarkdown::html_vignette
+output:   
+  rmarkdown::html_vignette
+
+
 vignette: >
-  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteIndexEntry{Real Data Analysis Example 1}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -17,22 +28,21 @@ vignette: >
 ## Introduction
 In this example, we will show scGTM recapitulates gene expression trends of endometrial transformation in the human menstrual cycle.This is originally from the second example the author showed in part 3 of the scGTM paper.
 ```{r}
-library(tidyverse)
-library(SingleCellExperiment)
-library(ComplexHeatmap)
-library(viridis)
-library(useful)
-library(RColorBrewer)
-library(scales)
-library(DESeq2)
-library(scGTM)
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(SingleCellExperiment))
+suppressPackageStartupMessages(library(ComplexHeatmap))
+suppressPackageStartupMessages(library(viridis))
+suppressPackageStartupMessages(library(useful))
+suppressPackageStartupMessages(library(RColorBrewer))
+suppressPackageStartupMessages(library(scales))
+suppressPackageStartupMessages(library(DESeq2))
+suppressPackageStartupMessages(library(scGTM))
 ```
 
 ## Read the Reference Data
 This WANG dataset contains 20 exemplar genes that exhibit temporal expression trends in unciliated epithelia cells in the human menstrual cycle. 
 ```{r}
 wang_sce <- readRDS("wang_sce.rds")
-#print(wang_sce)
 ```
 
 ```{r}
@@ -80,8 +90,6 @@ p1 <- ComplexHeatmap::Heatmap(mat, cluster_rows = FALSE, cluster_columns = FALSE
 dat <- data.frame(Index = colnames(mat), pseudotime = colData(wang_sub)$pseudotime)
 
 dat <- cbind(dat, round(t(assay(wang_sub, "cpm"))))
-
-#write_csv(x = dat, "~/scKGAM/data/csv/wang.csv")
 ```
 
 ### Import parameter csv
@@ -133,7 +141,7 @@ res <- apply(Poisson_para, 1, function(x, t_vec) {
 
 ```{r}
 rownames(res) <- rownames(mat)
-#rownames(res) <- Poisson_para$t0 %>% round(2)
+
 colnames(res) <- colnames(mat)
 
 res <- t(apply(res, 1, rescale))
@@ -147,7 +155,7 @@ Pseudotime quantile
 ```{r}
 Fn <- ecdf(pseudotime)
 pos <- Fn(Poisson_para$t0)
-#pos <- apply(res, 1, which.max)/dim(res)[2]
+
 ```
 
 ## Visualization
@@ -155,7 +163,6 @@ pos <- Fn(Poisson_para$t0)
 ht_list <- p1 + p2
 draw(ht_list, merge_legend = TRUE, ht_gap = unit(0.2, "in"), auto_adjust = FALSE)
 decorate_heatmap_body("Normalized logCPM", {
-    #grid.text("outlier", 1.5/10, 2.5/4, default.units = "npc")
   for(i in 1:20) {
     grid.lines(c(pos[21-i], pos[21-i]), c((i-1)/20, i/20), gp = gpar(lty = 1, lwd = 2, col = "red"))
   } 
